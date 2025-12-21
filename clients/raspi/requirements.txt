@@ -1,0 +1,22 @@
+# Raspberry Pi Motion Detector Client - Dependencies
+# ====================================================
+
+# Configuration
+PyYAML==6.0.1
+
+# HTTP client
+requests==2.31.0
+
+# GPIO for PIR sensor
+gpiozero==2.0
+
+# Image handling
+Pillow==10.1.0
+
+# Camera options:
+# Option 1: Raspberry Pi Camera Module (CSI) - RECOMMENDED
+#   Install system package: sudo apt install python3-picamera2
+#   (picamera2 not via pip, use system package)
+
+# Option 2: USB Webcam (if not using CSI camera)
+# opencv-python==4.8.1.78
