@@ -1,40 +1,40 @@
 #!/usr/bin/env python3
 """
-ESP32 Motion Detector - Windows Server
---------------------------------------
-Flask server for receiving motion-triggered photos and live stream frames
-from ESP32-CAM with PIR sensor.
+ESP32 Motion Detector - Windows Server with Face Recognition
+=============================================================
+Flask server with YuNet/SFace face recognition, person management, and auto-learning.
 
 Features:
-- POST /upload - Receive motion-triggered photos
+- POST /upload - Receive motion-triggered photos with face recognition
 - GET /stream - MJPEG live stream
 - GET /latest - View latest captured image
-- Windows Toast notifications with image preview
-- Face recognition placeholder
-- Rule-based workflow automation placeholder
+- GET /config - Configuration UI
+- GET /persons - Person management UI
+- Windows Toast notifications with person info
+- Auto-learning and person differentiation
 """
 
 import os
 import sys
 import time
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from threading import Lock
 from io import BytesIO
 
-from flask import Flask, request, Response, jsonify, render_template_string
+from flask import Flask, request, Response, jsonify, render_template, redirect, url_for
 import yaml
 from winotify import Notification, audio
 
-# Optional imports for face recognition (placeholder)
-# from face_recognition_module import FaceRecognitionPipeline
+# Import our modules
+from database import Database
+from face_recognition_cv import FaceRecognitionCV
 
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
 
-# Load config
 CONFIG_FILE = Path(__file__).parent / 'config.yaml'
 RULES_FILE = Path(__file__).parent / 'rules.yaml'
 
@@ -56,6 +56,9 @@ logger = logging.getLogger(__name__)
 STORAGE_DIR = Path(config['storage']['image_dir'])
 STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
+FACES_DIR = Path(config['face_recognition']['faces_dir'])
+FACES_DIR.mkdir(parents=True, exist_ok=True)
+
 # Auth
 AUTH_TOKEN = config['security']['auth_token']
 
@@ -63,118 +66,35 @@ AUTH_TOKEN = config['security']['auth_token']
 latest_frame = None
 frame_lock = Lock()
 latest_image_path = None
+latest_event_id = None
+
+# Auto-learning cooldown tracking
+learning_cooldown = {}  # {person_id: last_learning_timestamp}
 
 # ============================================================================
-# FACE RECOGNITION PLACEHOLDER
+# INITIALIZE COMPONENTS
 # ============================================================================
 
-class FaceRecognitionPipeline:
-    """
-    PLACEHOLDER: Face Recognition Pipeline
-
-    This is a dummy implementation. Replace with actual face recognition:
-    - OpenCV + face_recognition library
-    - DeepFace
-    - Custom trained model
-
-    Expected output format:
-    [
-        {
-            'name': 'Alice',
-            'confidence': 0.95,
-            'bbox': [x, y, w, h]
-        },
-        {
-            'name': 'Unknown',
-            'confidence': 0.60,
-            'bbox': [x, y, w, h]
-        }
-    ]
-    """
-
-    def __init__(self):
-        logger.info("Face Recognition Pipeline initialized (PLACEHOLDER)")
-        self.enabled = config['face_recognition']['enabled']
-
-    def recognize_faces(self, image_bytes):
-        """
-        TODO: Implement actual face recognition here
-
-        Args:
-            image_bytes: JPEG image as bytes
-
-        Returns:
-            List of detected persons with confidence scores
-        """
-        if not self.enabled:
-            return []
-
-        # PLACEHOLDER: Simulate face detection
-        logger.debug("PLACEHOLDER: Running face recognition (dummy)")
-
-        # Dummy result - replace with actual implementation
-        dummy_result = [
-            {
-                'name': 'Unknown',
-                'confidence': 0.0,
-                'bbox': [0, 0, 0, 0]
-            }
-        ]
-
-        # Real implementation would look like:
-        # import face_recognition
-        # import numpy as np
-        # from PIL import Image
-        #
-        # img = Image.open(BytesIO(image_bytes))
-        # img_array = np.array(img)
-        # face_locations = face_recognition.face_locations(img_array)
-        # face_encodings = face_recognition.face_encodings(img_array, face_locations)
-        #
-        # results = []
-        # for encoding, location in zip(face_encodings, face_locations):
-        #     matches = face_recognition.compare_faces(known_encodings, encoding)
-        #     name = "Unknown"
-        #     if True in matches:
-        #         name = known_names[matches.index(True)]
-        #     results.append({'name': name, 'bbox': location, ...})
-
-        return dummy_result
+app = Flask(__name__)
+db = Database(config['face_recognition']['db_path'])
+face_rec = FaceRecognitionCV(config)
 
 # ============================================================================
-# WORKFLOW AUTOMATION PLACEHOLDER
+# WORKFLOW AUTOMATION (kept from original)
 # ============================================================================
 
 class WorkflowEngine:
-    """
-    PLACEHOLDER: Rule-based workflow automation
-
-    Triggers actions based on detected persons and configured rules.
-    Current implementation is a placeholder - extend with:
-    - Telegram notifications
-    - Home Assistant integration
-    - Email alerts
-    - Custom webhooks
-    - Alarm systems
-    """
+    """Rule-based workflow automation"""
 
     def __init__(self, rules_file):
         with open(rules_file, 'r') as f:
             self.rules = yaml.safe_load(f)
         logger.info(f"Workflow Engine initialized with {len(self.rules.get('rules', []))} rules")
 
-    def on_person_detected(self, person_name, confidence, image_path):
-        """
-        TODO: Implement actual workflow actions here
+    def on_person_detected(self, person_name, confidence, status, image_path):
+        """Execute workflow actions"""
+        logger.info(f"WORKFLOW: Person='{person_name}', Confidence={confidence:.1f}%, Status={status}")
 
-        Args:
-            person_name: Name of detected person (or 'Unknown')
-            confidence: Detection confidence (0.0 - 1.0)
-            image_path: Path to the captured image
-        """
-        logger.info(f"WORKFLOW TRIGGER: Person='{person_name}', Confidence={confidence:.2f}")
-
-        # Find matching rules
         for rule in self.rules.get('rules', []):
             if self._rule_matches(rule, person_name, confidence):
                 logger.info(f"Rule matched: {rule['name']}")
@@ -184,68 +104,37 @@ class WorkflowEngine:
         """Check if rule conditions match"""
         conditions = rule.get('conditions', {})
 
-        # Check person match
         if 'person' in conditions:
             if conditions['person'] != person_name and conditions['person'] != '*':
                 return False
 
-        # Check confidence threshold
         if 'min_confidence' in conditions:
-            if confidence < conditions['min_confidence']:
+            if confidence < conditions['min_confidence'] * 100:
                 return False
 
         return True
 
     def _execute_actions(self, actions, person_name, image_path):
-        """Execute workflow actions"""
+        """Execute workflow actions (placeholder implementations)"""
         for action in actions:
             action_type = action.get('type')
 
             if action_type == 'log':
-                logger.info(f"ACTION[log]: {action.get('message', 'Person detected').format(person=person_name)}")
+                logger.info(f"ACTION[log]: {action.get('message', '').format(person=person_name)}")
 
             elif action_type == 'webhook':
-                # PLACEHOLDER: HTTP webhook call
                 logger.info(f"ACTION[webhook]: Would POST to {action.get('url')} (PLACEHOLDER)")
-                # Real implementation:
-                # import requests
-                # requests.post(action['url'], json={'person': person_name, 'image': image_path})
 
             elif action_type == 'telegram':
-                # PLACEHOLDER: Telegram notification
-                logger.info(f"ACTION[telegram]: Would send to chat_id={action.get('chat_id')} (PLACEHOLDER)")
-                # Real implementation:
-                # import telegram
-                # bot = telegram.Bot(token=action['bot_token'])
-                # bot.send_photo(chat_id=action['chat_id'], photo=open(image_path, 'rb'))
-
-            elif action_type == 'email':
-                # PLACEHOLDER: Email notification
-                logger.info(f"ACTION[email]: Would send to {action.get('to')} (PLACEHOLDER)")
-                # Real implementation:
-                # import smtplib
-                # from email.mime.multipart import MIMEMultipart
-                # ...
-
-            elif action_type == 'home_assistant':
-                # PLACEHOLDER: Home Assistant webhook
-                logger.info(f"ACTION[home_assistant]: Would trigger {action.get('entity_id')} (PLACEHOLDER)")
-                # Real implementation:
-                # requests.post(f"{ha_url}/api/webhook/{action['webhook_id']}", ...)
+                logger.info(f"ACTION[telegram]: Would send to {action.get('chat_id')} (PLACEHOLDER)")
 
             else:
                 logger.warning(f"Unknown action type: {action_type}")
 
-# ============================================================================
-# INITIALIZE COMPONENTS
-# ============================================================================
-
-app = Flask(__name__)
-face_recognition = FaceRecognitionPipeline()
 workflow_engine = WorkflowEngine(RULES_FILE)
 
 # ============================================================================
-# AUTHENTICATION
+# HELPER FUNCTIONS
 # ============================================================================
 
 def check_auth():
@@ -256,76 +145,142 @@ def check_auth():
         return False
     return True
 
-# ============================================================================
-# WINDOWS TOAST NOTIFICATIONS
-# ============================================================================
+def save_face_crop(person_id: int, face_crop_bytes: bytes, event_id: int) -> Path:
+    """Save face crop to disk"""
+    person_dir = FACES_DIR / f"person_{person_id}"
+    person_dir.mkdir(parents=True, exist_ok=True)
 
-def show_toast_notification(image_path, device_id="ESP32-CAM"):
-    """
-    Show Windows Toast notification with image preview
+    filename = f"event_{event_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+    filepath = person_dir / filename
 
-    Args:
-        image_path: Path to the captured image
-        device_id: ID of the device that triggered motion
-    """
+    with open(filepath, 'wb') as f:
+        f.write(face_crop_bytes)
+
+    return filepath
+
+def can_auto_learn(person_id: int) -> bool:
+    """Check if auto-learning is allowed (cooldown check)"""
+    if not config['face_recognition']['auto_learning']['enabled']:
+        return False
+
+    cooldown_seconds = config['face_recognition']['auto_learning']['cooldown_seconds']
+    last_learning = learning_cooldown.get(person_id)
+
+    if last_learning is None:
+        return True
+
+    elapsed = (datetime.now() - last_learning).total_seconds()
+    return elapsed >= cooldown_seconds
+
+def auto_learn_face(person_id: int, face_result: dict, event_id: int):
+    """Auto-learn face sample if quality is good"""
+    auto_learning = config['face_recognition']['auto_learning']
+
+    if not auto_learning['enabled']:
+        return
+
+    # Check match status (only GREEN if configured)
+    if auto_learning['only_green_matches']:
+        if face_result['match_result']['status'] != 'GREEN':
+            logger.debug(f"Auto-learning skipped: not GREEN match")
+            return
+
+    # Check quality
+    if not face_rec.is_quality_acceptable({'bbox': face_result['bbox'], 'quality_score': face_result['quality_score']}):
+        logger.debug(f"Auto-learning skipped: low quality")
+        return
+
+    # Check cooldown
+    if not can_auto_learn(person_id):
+        logger.debug(f"Auto-learning skipped: cooldown active")
+        return
+
+    # Check sample limit
+    current_count = db.count_face_samples(person_id)
+    max_samples = auto_learning['max_samples_per_person']
+
+    if current_count >= max_samples:
+        # Replace oldest or lowest quality
+        if auto_learning['replace_strategy'] == 'oldest':
+            old_sample_id = db.get_oldest_face_sample(person_id)
+            if old_sample_id:
+                db.delete_face_sample(old_sample_id)
+                logger.info(f"Replaced oldest sample for person {person_id}")
+
+    # Save face crop
+    face_crop_path = save_face_crop(person_id, face_result['face_crop'], event_id)
+
+    # Add to database
+    db.add_face_sample(
+        person_id=person_id,
+        embedding=face_result['embedding'],
+        image_path=str(face_crop_path),
+        quality_score=face_result['quality_score'],
+        bbox=face_result['bbox']
+    )
+
+    # Update cooldown
+    learning_cooldown[person_id] = datetime.now()
+
+    logger.info(f"✓ Auto-learned new sample for person {person_id} (quality={face_result['quality_score']:.2f})")
+
+def show_toast_notification(person_name: str, confidence: float, status: str, image_path: Path, is_new_person: bool = False):
+    """Show Windows Toast notification with person info"""
     try:
-        # Create toast notification
+        # Determine message based on status
+        if is_new_person:
+            title = "🆕 Neue Person erkannt!"
+            msg = f"Person: {person_name}\nStatus: Neu erstellt"
+        elif status == 'GREEN':
+            title = "✅ Person erkannt"
+            msg = f"Person: {person_name}\nConfidence: {confidence:.0f}%\nStatus: Zuverlässig"
+        elif status == 'YELLOW':
+            title = "⚠️ Person erkannt (unsicher)"
+            msg = f"Person: {person_name}\nConfidence: {confidence:.0f}%\nStatus: Unsicher"
+        else:
+            title = "❓ Unbekannte Person"
+            msg = f"Keine Übereinstimmung gefunden"
+
+        # Create toast
         toast = Notification(
             app_id="ESP32 Motion Detector",
-            title="🚨 Motion Detected!",
-            msg=f"Camera: {device_id}\nTime: {datetime.now().strftime('%H:%M:%S')}",
-            icon=str(image_path.absolute())  # Windows Toast needs absolute path
+            title=title,
+            msg=msg,
+            icon=str(image_path.absolute()) if image_path.exists() else None
         )
 
-        # Set image (hero image in toast)
-        toast.set_audio(audio.Default, loop=False)
+        if config['notifications']['sound']:
+            toast.set_audio(audio.Default, loop=False)
 
-        # Add action button to view in browser
-        toast.add_actions(label="View Latest", launch=f"http://localhost:{config['server']['port']}/latest")
+        toast.add_actions(label="Details anzeigen", launch=f"http://localhost:{config['server']['port']}/latest")
 
         toast.show()
-        logger.info(f"Toast notification shown for {image_path}")
+        logger.info(f"Toast notification shown: {person_name} ({status})")
 
     except Exception as e:
         logger.error(f"Failed to show toast notification: {e}")
-        # Fallback: simple notification without image
-        try:
-            toast = Notification(
-                app_id="ESP32 Motion Detector",
-                title="Motion Detected!",
-                msg=f"Device: {device_id} at {datetime.now().strftime('%H:%M:%S')}"
-            )
-            toast.show()
-        except Exception as e2:
-            logger.error(f"Fallback notification also failed: {e2}")
 
 # ============================================================================
-# FLASK ROUTES
+# FLASK ROUTES - API
 # ============================================================================
 
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
+    stats = db.get_stats()
     return jsonify({
         'status': 'ok',
         'timestamp': datetime.now().isoformat(),
-        'uptime': time.process_time()
+        'face_recognition_enabled': face_rec.enabled,
+        'database_stats': stats
     })
 
 @app.route('/upload', methods=['POST'])
 def upload():
-    """
-    Handle motion-triggered photo upload from ESP32
-
-    Expected:
-        - X-Auth-Token header
-        - multipart/form-data with 'image' file
-        - Optional: device_id, timestamp fields
-    """
+    """Handle motion-triggered photo upload with face recognition"""
     if not check_auth():
         return jsonify({'error': 'Unauthorized'}), 401
 
-    # Get image from request
     if 'image' not in request.files:
         logger.error("No image in upload request")
         return jsonify({'error': 'No image provided'}), 400
@@ -333,7 +288,7 @@ def upload():
     image_file = request.files['image']
     device_id = request.form.get('device_id', 'ESP32-CAM')
 
-    # Generate filename with timestamp
+    # Generate filename
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"{device_id}_{timestamp}.jpg"
     filepath = STORAGE_DIR / filename
@@ -343,7 +298,7 @@ def upload():
     logger.info(f"Image saved: {filepath}")
 
     # Update latest image reference
-    global latest_image_path
+    global latest_image_path, latest_event_id
     latest_image_path = filepath
 
     # Read image bytes for processing
@@ -351,50 +306,134 @@ def upload():
         image_bytes = f.read()
 
     # FACE RECOGNITION PIPELINE
-    detected_persons = face_recognition.recognize_faces(image_bytes)
-    logger.info(f"Face recognition result: {detected_persons}")
+    faces_detected = []
+    event_id = None
 
-    # WORKFLOW AUTOMATION
-    for person in detected_persons:
-        workflow_engine.on_person_detected(
-            person['name'],
-            person['confidence'],
-            filepath
-        )
+    if face_rec.enabled:
+        # Get all known embeddings from DB
+        known_embeddings = db.get_all_embeddings()
 
-    # Show Windows notification
-    if config['notifications']['enabled']:
-        show_toast_notification(filepath, device_id)
+        # Process image
+        face_results = face_rec.process_image(image_bytes, known_embeddings)
+
+        if face_results:
+            # Process each detected face
+            for face_result in face_results:
+                match = face_result['match_result']
+                person_id = match['person_id']
+                person_name = None
+                is_new_person = False
+
+                # Create event record
+                event_id = db.create_event(
+                    image_path=str(filepath),
+                    person_id=person_id,
+                    confidence=match['confidence'] / 100.0,
+                    distance=match['distance'],
+                    margin=match['margin'],
+                    status=match['status'],
+                    device_id=device_id
+                )
+
+                latest_event_id = event_id
+
+                if match['status'] == 'UNKNOWN' and config['face_recognition']['auto_create_person']:
+                    # Create new person
+                    person_id = db.create_person()
+                    person = db.get_person(person_id)
+                    person_name = person['name']
+                    is_new_person = True
+
+                    # Save face crop and add sample
+                    face_crop_path = save_face_crop(person_id, face_result['face_crop'], event_id)
+                    db.add_face_sample(
+                        person_id=person_id,
+                        embedding=face_result['embedding'],
+                        image_path=str(face_crop_path),
+                        quality_score=face_result['quality_score'],
+                        bbox=face_result['bbox']
+                    )
+
+                    # Update event with new person
+                    db.conn.execute(
+                        "UPDATE event SET person_id = ? WHERE id = ?",
+                        (person_id, event_id)
+                    )
+                    db.conn.commit()
+
+                    logger.info(f"✨ Created new person: {person_name} (ID: {person_id})")
+
+                elif person_id:
+                    # Existing person matched
+                    person = db.get_person(person_id)
+                    person_name = person['name']
+
+                    # Auto-learning
+                    auto_learn_face(person_id, face_result, event_id)
+
+                else:
+                    person_name = "Unknown"
+
+                faces_detected.append({
+                    'person_id': person_id,
+                    'person_name': person_name,
+                    'confidence': match['confidence'],
+                    'status': match['status'],
+                    'is_new': is_new_person
+                })
+
+                # Workflow automation
+                workflow_engine.on_person_detected(
+                    person_name,
+                    match['confidence'],
+                    match['status'],
+                    filepath
+                )
+
+                # Windows notification (only for first face)
+                if config['notifications']['enabled'] and len(faces_detected) == 1:
+                    show_toast_notification(
+                        person_name,
+                        match['confidence'],
+                        match['status'],
+                        filepath,
+                        is_new_person
+                    )
+
+        else:
+            # No faces detected
+            event_id = db.create_event(
+                image_path=str(filepath),
+                status='NO_FACE',
+                device_id=device_id
+            )
+            latest_event_id = event_id
+            logger.info("No faces detected in image")
+
+    else:
+        # Face recognition disabled
+        logger.debug("Face recognition disabled")
 
     return jsonify({
         'status': 'success',
         'filename': filename,
         'timestamp': timestamp,
-        'faces_detected': len(detected_persons),
-        'persons': [p['name'] for p in detected_persons]
+        'faces_detected': len(faces_detected),
+        'faces': faces_detected
     })
 
 @app.route('/stream_frame', methods=['POST'])
 def stream_frame():
-    """
-    Receive streaming frame from ESP32 for live view
-
-    Expected:
-        - X-Auth-Token header
-        - Raw JPEG bytes in body
-    """
+    """Receive streaming frame from ESP32"""
     if not check_auth():
         return jsonify({'error': 'Unauthorized'}), 401
 
     global latest_frame
-
-    # Get frame data
     frame_data = request.get_data()
 
     if len(frame_data) == 0:
         return jsonify({'error': 'Empty frame'}), 400
 
-    # Update latest frame (thread-safe)
     with frame_lock:
         latest_frame = frame_data
 
@@ -402,67 +441,86 @@ def stream_frame():
 
 @app.route('/stream', methods=['GET'])
 def stream():
-    """
-    MJPEG live stream endpoint
-
-    Serves multipart/x-mixed-replace stream for browser viewing
-    """
-    # Optional: Check auth via query param for browser access
+    """MJPEG live stream endpoint"""
     token = request.args.get('token')
     if config['security']['require_auth_for_stream'] and token != AUTH_TOKEN:
         return jsonify({'error': 'Unauthorized'}), 401
 
     def generate():
-        """Generator for MJPEG stream"""
         while True:
             with frame_lock:
                 if latest_frame is not None:
                     frame = latest_frame
                 else:
-                    # Send placeholder if no frame available
                     time.sleep(0.1)
                     continue
 
-            # Yield frame in MJPEG format
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-            # ~10 fps
             time.sleep(0.1)
 
-    return Response(
-        generate(),
-        mimetype='multipart/x-mixed-replace; boundary=frame'
-    )
+    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/latest', methods=['GET'])
 def latest():
-    """Show latest captured image in browser"""
-    if latest_image_path is None or not latest_image_path.exists():
-        return "<h1>No images captured yet</h1><p>Waiting for motion event...</p>", 404
+    """Show latest captured image with face recognition results"""
+    if latest_event_id is None:
+        return "<h1>No events yet</h1><p>Waiting for motion...</p>", 404
 
-    # Simple HTML viewer
+    event = db.get_latest_event()
+
+    if not event:
+        return "<h1>No events yet</h1>", 404
+
+    # Build face info HTML
+    faces_html = ""
+    if event['person_id']:
+        person = db.get_person(event['person_id'])
+        status_emoji = {'GREEN': '✅', 'YELLOW': '⚠️', 'UNKNOWN': '❓'}.get(event['status'], '❓')
+
+        faces_html = f"""
+        <div class="face-info {event['status'].lower()}">
+            <h3>{status_emoji} Person erkannt</h3>
+            <p><strong>Name:</strong> {person['name']}</p>
+            <p><strong>Confidence:</strong> {event['confidence'] * 100:.1f}%</p>
+            <p><strong>Status:</strong> {event['status']}</p>
+            <p><strong>Distance:</strong> {event['distance']:.3f}</p>
+            <p><strong>Margin:</strong> {event['margin']:.3f}</p>
+            <p><a href="/persons/{person['id']}">Person Details →</a></p>
+        </div>
+        """
+
     html = f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Latest Motion Event</title>
+        <title>Latest Event</title>
         <style>
             body {{ font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: #fff; }}
             h1 {{ color: #4CAF50; }}
             img {{ max-width: 100%; height: auto; border: 2px solid #4CAF50; }}
-            .info {{ background: #333; padding: 10px; margin: 10px 0; border-radius: 5px; }}
+            .info {{ background: #333; padding: 15px; margin: 15px 0; border-radius: 5px; }}
+            .face-info {{ background: #2a2a2a; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #4CAF50; }}
+            .face-info.green {{ border-left-color: #4CAF50; }}
+            .face-info.yellow {{ border-left-color: #FFC107; }}
+            .face-info.unknown {{ border-left-color: #999; }}
+            a {{ color: #4CAF50; text-decoration: none; }}
+            a:hover {{ text-decoration: underline; }}
         </style>
     </head>
     <body>
         <h1>🎥 Latest Motion Event</h1>
         <div class="info">
-            <strong>File:</strong> {latest_image_path.name}<br>
-            <strong>Time:</strong> {datetime.fromtimestamp(latest_image_path.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')}<br>
-            <strong>Size:</strong> {latest_image_path.stat().st_size / 1024:.1f} KB
+            <strong>Time:</strong> {event['timestamp']}<br>
+            <strong>Device:</strong> {event['device_id'] or 'Unknown'}<br>
+            <strong>Image:</strong> {Path(event['image_path']).name}
         </div>
-        <img src="/image/{latest_image_path.name}" alt="Latest capture">
-        <p><a href="/stream?token={AUTH_TOKEN}" style="color: #4CAF50;">View Live Stream</a></p>
+
+        {faces_html}
+
+        <img src="/image/{Path(event['image_path']).name}" alt="Latest capture">
+
+        <p><a href="/">← Dashboard</a> | <a href="/persons">Personen verwalten</a></p>
     </body>
     </html>
     """
@@ -478,48 +536,195 @@ def get_image(filename):
     with open(filepath, 'rb') as f:
         return Response(f.read(), mimetype='image/jpeg')
 
+# ============================================================================
+# FLASK ROUTES - WEB UI
+# ============================================================================
+
 @app.route('/', methods=['GET'])
 def index():
     """Main dashboard"""
+    stats = db.get_stats()
+
     html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <title>ESP32 Motion Detector</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #1a1a1a; color: #fff; }}
-            h1 {{ color: #4CAF50; }}
-            .container {{ max-width: 1200px; margin: 0 auto; }}
-            .stream-box {{ background: #000; padding: 10px; margin: 20px 0; }}
-            img {{ width: 100%; height: auto; }}
-            .button {{
-                display: inline-block;
-                padding: 10px 20px;
-                background: #4CAF50;
-                color: white;
-                text-decoration: none;
-                border-radius: 5px;
-                margin: 5px;
-            }}
-            .button:hover {{ background: #45a049; }}
-        </style>
+        <link rel="stylesheet" href="/static/style.css">
     </head>
     <body>
         <div class="container">
-            <h1>🎥 ESP32 Motion Detector Dashboard</h1>
+            <h1>🎥 ESP32 Motion Detector</h1>
+
+            <div class="stats">
+                <div class="stat-box">
+                    <h3>{stats['total_persons']}</h3>
+                    <p>Personen</p>
+                </div>
+                <div class="stat-box">
+                    <h3>{stats['total_samples']}</h3>
+                    <p>Samples</p>
+                </div>
+                <div class="stat-box">
+                    <h3>{stats['total_events']}</h3>
+                    <p>Events</p>
+                </div>
+            </div>
 
             <h2>Live Stream (~10 fps)</h2>
             <div class="stream-box">
-                <img src="/stream?token={AUTH_TOKEN}" alt="Live Stream">
+                <img src="/stream?token={AUTH_TOKEN}" alt="Live Stream" style="width:100%">
             </div>
 
             <h2>Quick Links</h2>
-            <a href="/latest" class="button">📸 Latest Capture</a>
+            <a href="/latest" class="button">📸 Latest Event</a>
+            <a href="/persons" class="button">👥 Personen verwalten</a>
+            <a href="/config" class="button">⚙️ Konfiguration</a>
+            <a href="/events" class="button">📋 Event-Historie</a>
             <a href="/health" class="button">💚 Health Check</a>
 
-            <h2>Info</h2>
-            <p>Status: <span style="color: #4CAF50;">●</span> Online</p>
+            <h2>Status</h2>
+            <p>Face Recognition: <span class="{'status-on' if face_rec.enabled else 'status-off'}">{' ON' if face_rec.enabled else 'OFF'}</span></p>
             <p>Storage: {STORAGE_DIR}</p>
+        </div>
+    </body>
+    </html>
+    """
+    return html
+
+@app.route('/config', methods=['GET', 'POST'])
+def config_page():
+    """Configuration page"""
+    if request.method == 'POST':
+        # Save config
+        try:
+            # Update config dict
+            config['face_recognition']['threshold_strict'] = float(request.form.get('threshold_strict', 0.35))
+            config['face_recognition']['threshold_loose'] = float(request.form.get('threshold_loose', 0.50))
+            config['face_recognition']['margin_strict'] = float(request.form.get('margin_strict', 0.15))
+            config['face_recognition']['margin_loose'] = float(request.form.get('margin_loose', 0.08))
+            config['face_recognition']['auto_learning']['enabled'] = request.form.get('auto_learning_enabled') == 'on'
+            config['face_recognition']['auto_learning']['max_samples_per_person'] = int(request.form.get('max_samples', 15))
+            config['face_recognition']['auto_create_person'] = request.form.get('auto_create_person') == 'on'
+
+            # Save to file
+            with open(CONFIG_FILE, 'w') as f:
+                yaml.dump(config, f, default_flow_style=False)
+
+            logger.info("Configuration saved")
+            return redirect(url_for('config_page'))
+
+        except Exception as e:
+            logger.error(f"Failed to save config: {e}")
+            return f"Error: {e}", 500
+
+    return render_template('config.html', config=config)
+
+@app.route('/persons', methods=['GET'])
+def persons_list():
+    """List all persons"""
+    persons = db.get_all_persons(include_merged=False)
+
+    # Get sample counts
+    for person in persons:
+        person['sample_count'] = db.count_face_samples(person['id'])
+
+    return render_template('persons.html', persons=persons)
+
+@app.route('/persons/<int:person_id>', methods=['GET'])
+def person_detail(person_id):
+    """Person detail page"""
+    person = db.get_person(person_id)
+
+    if not person:
+        return "Person not found", 404
+
+    samples = db.get_face_samples(person_id)
+    events = db.get_events(limit=20, person_id=person_id)
+
+    return render_template('person_detail.html', person=person, samples=samples, events=events)
+
+@app.route('/persons/<int:person_id>/rename', methods=['POST'])
+def rename_person(person_id):
+    """Rename person"""
+    new_name = request.form.get('name', '').strip()
+
+    if not new_name:
+        return "Name required", 400
+
+    if db.update_person_name(person_id, new_name):
+        logger.info(f"Renamed person {person_id} to '{new_name}'")
+        return redirect(url_for('person_detail', person_id=person_id))
+    else:
+        return "Failed to rename", 500
+
+@app.route('/persons/merge', methods=['POST'])
+def merge_persons():
+    """Merge two persons"""
+    from_id = int(request.form.get('from_id'))
+    into_id = int(request.form.get('into_id'))
+
+    if from_id == into_id:
+        return "Cannot merge person into itself", 400
+
+    if db.merge_persons(from_id, into_id):
+        logger.info(f"Merged person {from_id} into {into_id}")
+        return redirect(url_for('persons_list'))
+    else:
+        return "Failed to merge", 500
+
+@app.route('/persons/<int:person_id>/delete', methods=['POST'])
+def delete_person(person_id):
+    """Delete person"""
+    if db.delete_person(person_id):
+        logger.info(f"Deleted person {person_id}")
+        return redirect(url_for('persons_list'))
+    else:
+        return "Failed to delete", 500
+
+@app.route('/events', methods=['GET'])
+def events_list():
+    """Event history"""
+    events = db.get_events(limit=100)
+
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Event History</title>
+        <link rel="stylesheet" href="/static/style.css">
+    </head>
+    <body>
+        <div class="container">
+            <h1>📋 Event History</h1>
+            <table>
+                <tr>
+                    <th>Time</th>
+                    <th>Person</th>
+                    <th>Confidence</th>
+                    <th>Status</th>
+                    <th>Device</th>
+                </tr>
+    """
+
+    for event in events:
+        person_name = event.get('person_name') or 'Unknown'
+        confidence = f"{event['confidence'] * 100:.0f}%" if event['confidence'] else '-'
+        status_emoji = {'GREEN': '✅', 'YELLOW': '⚠️', 'UNKNOWN': '❓', 'NO_FACE': '🚫'}.get(event['status'], '❓')
+
+        html += f"""
+                <tr>
+                    <td>{event['timestamp']}</td>
+                    <td>{person_name}</td>
+                    <td>{confidence}</td>
+                    <td>{status_emoji} {event['status']}</td>
+                    <td>{event['device_id'] or '-'}</td>
+                </tr>
+        """
+
+    html += """
+            </table>
+            <p><a href="/">← Dashboard</a></p>
         </div>
     </body>
     </html>
@@ -532,12 +737,12 @@ def index():
 
 if __name__ == '__main__':
     logger.info("=" * 60)
-    logger.info("ESP32 Motion Detector Server Starting")
+    logger.info("ESP32 Motion Detector Server with Face Recognition")
     logger.info("=" * 60)
     logger.info(f"Server: http://localhost:{config['server']['port']}")
-    logger.info(f"Stream: http://localhost:{config['server']['port']}/stream?token={AUTH_TOKEN}")
+    logger.info(f"Face Recognition: {'ENABLED' if face_rec.enabled else 'DISABLED'}")
+    logger.info(f"Database: {db.db_path}")
     logger.info(f"Storage: {STORAGE_DIR}")
-    logger.info(f"Auth Token: {AUTH_TOKEN}")
     logger.info("=" * 60)
 
     app.run(

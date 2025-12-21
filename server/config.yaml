@@ -32,14 +32,38 @@ notifications:
   sound: true
 
 face_recognition:
-  # Enable face recognition pipeline (placeholder)
-  enabled: false  # Set to true when implementing
+  # Enable face recognition pipeline
+  enabled: false  # Set to true after downloading models
 
-  # Confidence threshold for positive match
-  min_confidence: 0.6
+  # Database
+  db_path: './faces.db'
+  faces_dir: './faces_db'  # Directory for face crops
 
-  # Path to known faces database (future feature)
-  known_faces_dir: './known_faces'
+  # Matching thresholds (cosine distance)
+  # GREEN: d1 < threshold_strict AND margin > margin_strict
+  # YELLOW: d1 < threshold_loose AND margin > margin_loose
+  # UNKNOWN: otherwise
+
+  threshold_strict: 0.35   # Distance for reliable match (lower = stricter)
+  threshold_loose: 0.50    # Distance for uncertain match
+  margin_strict: 0.15      # Margin (d2-d1) for reliable match (higher = more distinct)
+  margin_loose: 0.08       # Margin for uncertain match
+
+  # Quality thresholds for auto-learning
+  min_face_size: 10000     # Minimum face area in pixels (100x100)
+  min_quality_score: 0.6   # Minimum quality score (0-1)
+
+  # Auto-learning settings
+  auto_learning:
+    enabled: true
+    max_samples_per_person: 15      # Maximum samples per person
+    cooldown_seconds: 60            # Cooldown between auto-learning
+    only_green_matches: true        # Only learn from GREEN matches
+    replace_strategy: 'oldest'      # oldest | lowest_quality
+
+  # New person creation
+  auto_create_person: true          # Auto-create person on UNKNOWN
+  new_person_name_template: 'Unbekannt #{count}'
 
 stream:
   # Target framerate for live stream (ESP32 limited to ~10-15 fps realistic)

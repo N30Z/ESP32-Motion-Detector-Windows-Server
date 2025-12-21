@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Konfiguration - ESP32 Motion Detector{% endblock %}
+
+{% block content %}
+<h1>⚙️ Konfiguration</h1>
+
+<form method="POST" class="config-form">
+    <h2>Face Recognition Thresholds</h2>
+
+    <div class="form-group">
+        <label for="threshold_strict">Threshold Strict (GREEN)</label>
+        <input type="number" step="0.01" id="threshold_strict" name="threshold_strict"
+               value="{{ config.face_recognition.threshold_strict }}" min="0" max="1">
+        <small>Distanz für zuverlässige Erkennung (niedriger = strenger)</small>
+    </div>
+
+    <div class="form-group">
+        <label for="threshold_loose">Threshold Loose (YELLOW)</label>
+        <input type="number" step="0.01" id="threshold_loose" name="threshold_loose"
+               value="{{ config.face_recognition.threshold_loose }}" min="0" max="1">
+        <small>Distanz für unsichere Erkennung</small>
+    </div>
+
+    <div class="form-group">
+        <label for="margin_strict">Margin Strict (GREEN)</label>
+        <input type="number" step="0.01" id="margin_strict" name="margin_strict"
+               value="{{ config.face_recognition.margin_strict }}" min="0" max="1">
+        <small>Mindest-Margin (d2-d1) für zuverlässige Erkennung</small>
+    </div>
+
+    <div class="form-group">
+        <label for="margin_loose">Margin Loose (YELLOW)</label>
+        <input type="number" step="0.01" id="margin_loose" name="margin_loose"
+               value="{{ config.face_recognition.margin_loose }}" min="0" max="1">
+        <small>Mindest-Margin für unsichere Erkennung</small>
+    </div>
+
+    <h2>Auto-Learning</h2>
+
+    <div class="form-group">
+        <label>
+            <input type="checkbox" name="auto_learning_enabled"
+                   {% if config.face_recognition.auto_learning.enabled %}checked{% endif %}>
+            Auto-Learning aktivieren
+        </label>
+        <small>Automatisch neue Samples von GREEN matches lernen</small>
+    </div>
+
+    <div class="form-group">
+        <label for="max_samples">Max Samples pro Person</label>
+        <input type="number" id="max_samples" name="max_samples"
+               value="{{ config.face_recognition.auto_learning.max_samples_per_person }}" min="1" max="50">
+        <small>Maximale Anzahl gespeicherter Samples pro Person</small>
+    </div>
+
+    <h2>Person Management</h2>
+
+    <div class="form-group">
+        <label>
+            <input type="checkbox" name="auto_create_person"
+                   {% if config.face_recognition.auto_create_person %}checked{% endif %}>
+            Automatisch neue Personen erstellen
+        </label>
+        <small>Bei UNKNOWN automatisch neue Person anlegen</small>
+    </div>
+
+    <button type="submit" class="button button-primary">💾 Speichern</button>
+    <a href="/" class="button">❌ Abbrechen</a>
+</form>
+
+<h2>📖 Hilfe</h2>
+<div class="help-box">
+    <h3>Thresholds Tuning:</h3>
+    <ul>
+        <li><strong>Zu viele YELLOW?</strong> → <code>threshold_strict</code> erhöhen</li>
+        <li><strong>Zu viele FALSE POSITIVES?</strong> → <code>threshold_strict</code> senken</li>
+        <li><strong>Zu viele UNKNOWN bei bekannten Personen?</strong> → <code>threshold_loose</code> erhöhen</li>
+        <li><strong>Margin zu niedrig?</strong> → Mehr diverse Samples sammeln</li>
+    </ul>
+
+    <h3>Status-Bedeutung:</h3>
+    <ul>
+        <li><strong>GREEN ✅:</strong> d1 &lt; {{ config.face_recognition.threshold_strict }} UND margin &gt; {{ config.face_recognition.margin_strict }}</li>
+        <li><strong>YELLOW ⚠️:</strong> d1 &lt; {{ config.face_recognition.threshold_loose }} UND margin &gt; {{ config.face_recognition.margin_loose }}</li>
+        <li><strong>UNKNOWN ❓:</strong> Keine Bedingung erfüllt</li>
+    </ul>
+</div>
+{% endblock %}
