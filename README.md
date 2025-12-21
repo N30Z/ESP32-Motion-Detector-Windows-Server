@@ -131,7 +131,7 @@ python app.py
 ### 2. ESP32 Firmware Upload
 
 ```bash
-cd ../clients/esp32
+cd ../esp32
 
 # Copy secrets
 cp include/secrets.h.example include/secrets.h
@@ -462,7 +462,7 @@ sudo usermod -a -G video,gpio $USER
 - **Windows:** [server/README.md](server/README.md)
 - **Linux:** [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md)
 - **Raspberry Pi:** [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md)
-- **ESP32:** [clients/esp32/README.md](clients/esp32/README.md)
+- **ESP32:** [esp32/README.md](esp32/README.md)
 
 ---
 
@@ -518,7 +518,7 @@ sudo ufw enable
 | [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md) | Linux server deployment, systemd, notifications | 200+ |
 | [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md) | Raspberry Pi client + standalone setup | 400+ |
 | [server/README.md](server/README.md) | Server API, configuration, extensions | 500+ |
-| [clients/esp32/README.md](clients/esp32/README.md) | ESP32 firmware, wiring, troubleshooting | 400+ |
+| [esp32/README.md](esp32/README.md) | ESP32 firmware, wiring, troubleshooting | 400+ |
 | [clients/raspi/README.md](clients/raspi/README.md) | Raspberry Pi client quick start | 100+ |
 
 ### Quick Links
@@ -691,7 +691,7 @@ sudo journalctl -u motion-detector-server -f
 
 ### Upload ESP32 Firmware
 ```bash
-cd clients/esp32
+cd esp32
 pio run --target upload
 pio device monitor
 ```
