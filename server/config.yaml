@@ -1,0 +1,49 @@
+# ESP32 Motion Detector - Server Configuration
+# ==============================================
+
+server:
+  host: '0.0.0.0'  # Listen on all interfaces
+  port: 5000
+  debug: false  # Set to true for development only
+  log_level: 'INFO'  # DEBUG, INFO, WARNING, ERROR
+  log_file: 'server.log'
+
+security:
+  # IMPORTANT: Change this token before deployment!
+  # Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+  auth_token: 'YOUR_SECRET_TOKEN_CHANGE_ME_12345'
+
+  # Require authentication for stream endpoint
+  require_auth_for_stream: true
+
+storage:
+  # Directory for storing captured images
+  image_dir: './captured_images'
+
+  # Auto-cleanup old images (future feature)
+  max_images: 1000
+  max_age_days: 30
+
+notifications:
+  # Enable Windows Toast notifications
+  enabled: true
+
+  # Play sound with notification
+  sound: true
+
+face_recognition:
+  # Enable face recognition pipeline (placeholder)
+  enabled: false  # Set to true when implementing
+
+  # Confidence threshold for positive match
+  min_confidence: 0.6
+
+  # Path to known faces database (future feature)
+  known_faces_dir: './known_faces'
+
+stream:
+  # Target framerate for live stream (ESP32 limited to ~10-15 fps realistic)
+  target_fps: 10
+
+  # JPEG quality for stream frames (0-100, lower = smaller size)
+  jpeg_quality: 80
