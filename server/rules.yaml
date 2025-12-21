@@ -1,0 +1,109 @@
+# ESP32 Motion Detector - Workflow Rules
+# =======================================
+# Define automated actions based on detected persons
+#
+# PLACEHOLDER: Current implementation only logs actions.
+# Extend with real integrations (Telegram, Home Assistant, etc.)
+
+rules:
+  # Rule 1: Log all detections
+  - name: "Log All Detections"
+    conditions:
+      person: "*"  # Match any person (including Unknown)
+      min_confidence: 0.0
+    actions:
+      - type: log
+        message: "Motion detected: {person}"
+
+  # Rule 2: Alert on unknown persons (placeholder)
+  - name: "Alert Unknown Person"
+    conditions:
+      person: "Unknown"
+      min_confidence: 0.5
+    actions:
+      - type: log
+        message: "⚠️ Unknown person detected with confidence {person}"
+
+      # PLACEHOLDER: Telegram notification
+      - type: telegram
+        bot_token: "YOUR_BOT_TOKEN"  # Get from @BotFather
+        chat_id: "YOUR_CHAT_ID"
+        message: "⚠️ Unknown person detected!"
+
+      # PLACEHOLDER: Webhook to external service
+      - type: webhook
+        url: "https://example.com/webhook/motion"
+        method: "POST"
+
+  # Rule 3: Welcome known person (example)
+  - name: "Welcome Alice"
+    conditions:
+      person: "Alice"
+      min_confidence: 0.7
+    actions:
+      - type: log
+        message: "✅ Welcome back, Alice!"
+
+      # PLACEHOLDER: Home Assistant automation
+      - type: home_assistant
+        url: "http://homeassistant.local:8123"
+        webhook_id: "motion_alice"
+        entity_id: "light.entrance"
+        action: "turn_on"
+
+  # Rule 4: Alert on specific person (example)
+  - name: "Security Alert - Intruder"
+    conditions:
+      person: "Intruder"  # Add to known faces with this label
+      min_confidence: 0.6
+    actions:
+      - type: log
+        message: "🚨 SECURITY ALERT: Intruder detected!"
+
+      # PLACEHOLDER: Email alert
+      - type: email
+        to: "security@example.com"
+        subject: "Security Alert - Motion Detected"
+        smtp_server: "smtp.gmail.com"
+        smtp_port: 587
+        username: "your-email@gmail.com"
+        password: "your-app-password"
+
+      # PLACEHOLDER: Multiple webhooks
+      - type: webhook
+        url: "https://maker.ifttt.com/trigger/security_alert/with/key/YOUR_KEY"
+
+# ============================================================================
+# HOW TO EXTEND:
+# ============================================================================
+#
+# 1. Add new persons to face recognition database in ./known_faces/
+#    - Create folder: ./known_faces/PersonName/
+#    - Add photos: person1.jpg, person2.jpg, etc.
+#
+# 2. Implement action handlers in app.py WorkflowEngine._execute_actions()
+#
+# 3. Add new action types:
+#    - 'sms': Send SMS via Twilio
+#    - 'push': Send push notification via Pushover/Pushbullet
+#    - 'mqtt': Publish to MQTT broker
+#    - 'http_request': Generic HTTP request
+#    - 'run_script': Execute custom Python script
+#
+# 4. Add conditions:
+#    - 'time_range': Only trigger during specific hours
+#    - 'day_of_week': Only trigger on specific days
+#    - 'cooldown': Minimum time between triggers
+#    - 'location': If multiple cameras, match specific device_id
+#
+# Example advanced rule:
+# - name: "Night Time Alert"
+#   conditions:
+#     person: "*"
+#     min_confidence: 0.5
+#     time_range: "22:00-06:00"  # Night time only
+#     device_id: "ESP32-CAM-Front"
+#   actions:
+#     - type: sms
+#       to: "+1234567890"
+#       message: "Motion detected at front door during night"
