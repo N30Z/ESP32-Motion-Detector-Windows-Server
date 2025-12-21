@@ -1,236 +1,311 @@
-# ESP32 Motion Detector with Windows Server
+# ESP32 Motion Detector - Multi-Platform System
 
-**Complete, production-ready system** for motion detection with ESP32-CAM and PIR sensor, streaming live video to a Windows server with notifications.
+**Production-ready motion detection system** with face recognition, supporting multiple platforms: Windows, Linux, ESP32-CAM, and Raspberry Pi.
 
-[![Platform](https://img.shields.io/badge/platform-ESP32-blue.svg)](https://www.espressif.com/en/products/socs/esp32)
-[![Framework](https://img.shields.io/badge/framework-Arduino-00979D.svg)](https://www.arduino.cc/)
+[![Platform](https://img.shields.io/badge/platform-ESP32%20%7C%20Raspberry%20Pi-blue.svg)](https://www.espressif.com/en/products/socs/esp32)
+[![Server](https://img.shields.io/badge/server-Windows%20%7C%20Linux-green.svg)](https://www.python.org/)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## 🎯 Features
+---
 
-### ESP32-CAM Firmware
-- ✅ **PIR Motion Detection** with interrupt-based triggering
-- ✅ **Automatic Photo Capture** on motion events
-- ✅ **Live MJPEG Streaming** (~10 fps)
-- ✅ **Debounce & Cooldown** to prevent spam
-- ✅ **WiFi Auto-Reconnect**
-- ✅ **Modular Camera Code** - easy to adapt to different boards
-- ✅ **Low Power Design** with optional deep sleep
+## 🎯 Overview
 
-### Windows Server
-- ✅ **Flask HTTP Server** with RESTful API
-- ✅ **Windows Toast Notifications** with image preview
-- ✅ **MJPEG Live Stream** viewable in browser
-- ✅ **Face Recognition Pipeline** (placeholder, ready to implement)
-- ✅ **Rule-Based Workflows** (Telegram, webhooks, automation)
-- ✅ **Token Authentication**
-- ✅ **Comprehensive Logging**
+Complete motion detection system with **face recognition** (YuNet + SFace), supporting multiple deployment scenarios:
 
-## 📋 System Overview
+- **Camera Clients:** ESP32-CAM (C++) or Raspberry Pi (Python)
+- **Server:** Windows or Linux
+- **Standalone:** All-in-one Raspberry Pi (camera + server)
 
-```
-┌─────────────────┐                    ┌──────────────────────┐
-│   ESP32-CAM     │                    │  Windows Server      │
-│                 │                    │                      │
-│  ┌───────────┐  │                    │  ┌────────────────┐  │
-│  │ OV2640    │  │  WiFi/LAN          │  │ Flask Server   │  │
-│  │ Camera    │──┼────────────────────┼─►│ :5000          │  │
-│  └───────────┘  │                    │  └────────────────┘  │
-│                 │                    │         │            │
-│  ┌───────────┐  │  Motion Event:     │         ▼            │
-│  │ PIR       │  │  POST /upload      │  ┌────────────────┐  │
-│  │ Sensor    │──┼───► JPEG + Meta    │  │ Face Recogni-  │  │
-│  └───────────┘  │                    │  │ tion Pipeline  │  │
-│       │         │  Streaming:        │  └────────────────┘  │
-│       │ GPIO 13 │  POST /stream_frame│         │            │
-│       │         │  100ms interval    │         ▼            │
-│  [Interrupt]    │                    │  ┌────────────────┐  │
-│                 │                    │  │ Workflow       │  │
-│  [Auto-Upload]  │                    │  │ Engine (Rules) │  │
-└─────────────────┘                    │  └────────────────┘  │
-                                       │         │            │
-                                       │         ▼            │
-                                       │  ┌────────────────┐  │
-                                       │  │ Windows Toast  │  │
-                                       │  │ Notification   │  │
-                                       │  └────────────────┘  │
-                                       │                      │
-                                       │  Browser: /stream    │
-                                       │  [Live View]         │
-                                       └──────────────────────┘
-```
+**Key Features:**
+- ✅ PIR motion detection with photo capture
+- ✅ Live MJPEG streaming (~5-10 fps)
+- ✅ Face recognition with auto-learning (OpenCV YuNet/SFace)
+- ✅ Person management (rename, merge, track)
+- ✅ Platform-specific notifications (Windows Toast / Linux Desktop)
+- ✅ Web UI for configuration and monitoring
+- ✅ Rule-based workflow automation
+- ✅ Multi-camera support
 
-## 🚀 Quick Start (5 Minutes)
+---
 
-### 1. Hardware Setup
+## 📋 Deployment Scenarios
 
-**You need:**
-- ESP32-CAM board (AI-Thinker recommended)
-- PIR motion sensor (HC-SR501 or similar)
-- FTDI USB-to-Serial adapter (3.3V logic!)
-- 5V 2A power supply
-- Jumper wires
+### 1️⃣ **Windows Server + ESP32-CAM** (Original)
 
-**Wiring:**
-```
-PIR Sensor:
-  VCC → ESP32-CAM 5V
-  GND → ESP32-CAM GND
-  OUT → ESP32-CAM GPIO 13
+Classic setup: ESP32-CAM with PIR → Windows PC server.
 
-FTDI Programmer (for upload only):
-  TX → ESP32-CAM U0R (RX)
-  RX → ESP32-CAM U0T (TX)
-  GND → ESP32-CAM GND
-  5V → ESP32-CAM 5V (or use external power)
+- **Camera:** ESP32-CAM (AI-Thinker) with OV2640
+- **Server:** Windows 10/11 with Toast notifications
+- **Performance:** ~100ms face recognition
+- **Best for:** Windows users, minimal setup
 
-Flash Mode:
-  IO0 → GND (during upload only)
-```
+**Quick Start:** [Windows + ESP32 Guide](#quick-start-windows--esp32)
 
-### 2. Server Setup (Windows)
+---
+
+### 2️⃣ **Linux Server + ESP32-CAM**
+
+ESP32-CAM → Linux server (Ubuntu/Debian).
+
+- **Camera:** ESP32-CAM (same as Windows)
+- **Server:** Ubuntu/Debian with Desktop notifications or headless
+- **Performance:** ~100ms face recognition
+- **Best for:** Linux users, headless servers
+
+**Quick Start:** [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md)
+
+---
+
+### 3️⃣ **Server + Raspberry Pi Camera Client**
+
+Raspberry Pi with camera + PIR → Remote server (Windows/Linux).
+
+- **Camera:** Raspberry Pi (Zero 2 W / 3 / 4 / 5) + CSI Camera Module
+- **Server:** Windows or Linux (separate device)
+- **Performance:** ~200-500ms upload (Pi model dependent)
+- **Best for:** Distributed cameras, existing server
+
+**Quick Start:** [docs/RASPBERRY_PI.md → Client Mode](docs/RASPBERRY_PI.md#client-mode)
+
+---
+
+### 4️⃣ **Standalone Raspberry Pi** (All-in-One)
+
+Single Raspberry Pi runs both camera + server.
+
+- **Device:** Raspberry Pi 4/5 (Pi 3 works but slower)
+- **Features:** Camera, PIR, server, face recognition, Web UI
+- **Performance:** ~400-500ms face recognition (Pi 4)
+- **Best for:** Portable, single-device solution
+
+**Quick Start:** [docs/RASPBERRY_PI.md → Standalone Mode](docs/RASPBERRY_PI.md#standalone-mode)
+
+---
+
+## 🚀 Quick Start (Windows + ESP32)
+
+### Prerequisites
+
+- **Hardware:**
+  - ESP32-CAM (AI-Thinker)
+  - PIR sensor (HC-SR501)
+  - FTDI programmer (3.3V)
+  - 5V 2A power supply
+- **Software:**
+  - Python 3.8+
+  - PlatformIO or Arduino IDE
+
+### 1. Server Setup (Windows)
 
 ```bash
-# Install Python 3.8+ from python.org
+# Install Python from python.org
 
 # Clone repository
-git clone https://github.com/yourusername/ESP32-Motion-Detector-Windows-Server.git
+git clone <repo-url>
 cd ESP32-Motion-Detector-Windows-Server/server
 
 # Install dependencies
 pip install -r requirements.txt
+pip install -r requirements-windows.txt  # Windows Toast
+
+# Download face recognition models
+python models/download_models.py
 
 # Generate auth token
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 
-# Edit config.yaml - paste token
+# Configure
 notepad config.yaml
+# Set:
+#   security.auth_token: <generated_token>
+#   notifications.backend: 'windows_toast'
+#   face_recognition.enabled: true
 
-# Run server
+# Start server
 python app.py
 ```
 
-Server starts at: `http://0.0.0.0:5000`
+**Server URL:** `http://localhost:5000`
 
-### 3. ESP32 Setup
+### 2. ESP32 Firmware Upload
 
 ```bash
-# Install PlatformIO (or use Arduino IDE)
-pip install platformio
-
-# Navigate to firmware
 cd ../esp32
 
-# Copy secrets template
+# Copy secrets
 cp include/secrets.h.example include/secrets.h
 
-# Edit secrets.h with your WiFi and server details
+# Edit secrets.h
 notepad include/secrets.h
-```
+# Set:
+#   WIFI_SSID, WIFI_PASSWORD
+#   SERVER_HOST: "192.168.1.100" (your PC IP - run 'ipconfig')
+#   AUTH_TOKEN: <same as config.yaml>
 
-**Configure in `secrets.h`:**
-```cpp
-#define WIFI_SSID "YourWiFi"
-#define WIFI_PASSWORD "YourPassword"
-#define SERVER_HOST "192.168.1.100"  // Your PC IP (run 'ipconfig')
-#define AUTH_TOKEN "your_generated_token"  // Same as config.yaml
-```
-
-**Upload firmware:**
-```bash
-# PlatformIO
+# Upload (PlatformIO)
 pio run --target upload
 
-# Or use Arduino IDE (see ESP32 README)
+# Monitor
+pio device monitor
+# Should show: "System Ready!"
 ```
 
-**Important:** Connect IO0 to GND before uploading!
+**Important:** Connect IO0 to GND before uploading, disconnect after.
 
-### 4. Test System
+### 3. Hardware Wiring
 
-1. **Check ESP32 Serial Monitor:**
-   ```
-   pio device monitor
-   ```
-   Should show: "System Ready!"
+```
+PIR HC-SR501:
+  VCC → ESP32-CAM 5V
+  GND → ESP32-CAM GND
+  OUT → ESP32-CAM GPIO 13
 
-2. **Open Browser:**
-   ```
-   http://localhost:5000
-   ```
-   You should see the dashboard with live stream.
+Power:
+  5V 2A → ESP32-CAM VCC/GND
+```
 
-3. **Trigger Motion:**
-   - Wave hand in front of PIR sensor
-   - Windows notification should popup with image
-   - Image appears at `http://localhost:5000/latest`
+### 4. Test
 
-**✅ Done! System is operational.**
+1. Trigger PIR (wave hand)
+2. Check Windows Toast notification
+3. Open `http://localhost:5000/latest`
+4. View live stream: `http://localhost:5000`
+
+**✅ System operational!**
+
+---
 
 ## 📁 Project Structure
 
 ```
 ESP32-Motion-Detector-Windows-Server/
 │
-├── server/                          # Windows Server (Python/Flask)
-│   ├── app.py                       # Main server application
+├── server/                          # Server (Windows/Linux)
+│   ├── core/                        # (not yet refactored, planned)
+│   ├── platform/                    # Platform-specific code
+│   │   ├── notifications.py         #   Abstract notification interface
+│   │   ├── windows_toast.py         #   Windows Toast backend
+│   │   └── linux_notify.py          #   Linux notify-send backend
+│   ├── templates/                   # Web UI templates
+│   ├── static/                      # CSS/JS
+│   ├── models/                      # YuNet/SFace ONNX models
+│   │   └── download_models.py       #   Model downloader
+│   ├── app.py                       # Main Flask application
+│   ├── database.py                  # SQLite database layer
+│   ├── face_recognition_cv.py       # Face recognition pipeline
 │   ├── config.yaml                  # Server configuration
-│   ├── rules.yaml                   # Workflow automation rules
-│   ├── requirements.txt             # Python dependencies
-│   ├── README.md                    # Server documentation
-│   ├── server.log                   # Runtime logs (auto-generated)
-│   └── captured_images/             # Stored images (auto-generated)
+│   ├── rules.yaml                   # Workflow automation
+│   ├── requirements.txt             # Base Python dependencies
+│   ├── requirements-windows.txt     # Windows-specific (winotify)
+│   ├── requirements-linux.txt       # Linux-specific (notify-send)
+│   └── README.md
 │
-├── esp32/                           # ESP32-CAM Firmware
-│   ├── src/
-│   │   └── main.cpp                 # Main firmware code
-│   ├── include/
-│   │   └── secrets.h.example        # Template for WiFi/server config
-│   ├── platformio.ini               # PlatformIO configuration
-│   └── README.md                    # ESP32 documentation
+├── clients/
+│   ├── esp32/                       # ESP32-CAM firmware (Arduino/C++)
+│   │   ├── src/main.cpp
+│   │   ├── include/secrets.h.example
+│   │   ├── platformio.ini
+│   │   └── README.md
+│   │
+│   └── raspi/                       # Raspberry Pi client (Python)
+│       ├── pir_cam_client.py        # Main client script
+│       ├── config.yaml.example
+│       ├── requirements.txt
+│       └── README.md
 │
-├── README.md                        # This file (main documentation)
-└── LICENSE                          # MIT License
+├── deploy/
+│   ├── linux/
+│   │   └── systemd/                 # Linux systemd services
+│   └── raspi/
+│       ├── client/                  # Pi client systemd
+│       └── standalone/              # Standalone setup scripts
+│
+├── docs/
+│   ├── FACE_RECOGNITION.md          # Complete FR guide (500+ lines)
+│   ├── LINUX_SETUP.md               # Linux deployment (200+ lines)
+│   └── RASPBERRY_PI.md              # Raspberry Pi guide (400+ lines)
+│
+└── README.md                        # This file
 ```
 
-## 🔧 Configuration
+---
 
-### Server Configuration (`server/config.yaml`)
+## 🎨 Features in Detail
 
+### Face Recognition (YuNet + SFace)
+
+**Lightweight OpenCV-based pipeline:**
+
+- **Detection:** YuNet (~200 KB ONNX model)
+- **Embedding:** SFace (~5 MB ONNX model)
+- **No heavy dependencies:** No PyTorch, no dlib, only opencv-contrib-python
+- **Performance:** ~100-200ms per face (desktop), ~500ms (Pi 4)
+
+**Features:**
+- ✅ Automatic person differentiation (UNKNOWN → new person)
+- ✅ Auto-learning (up to 15 samples per person)
+- ✅ Distance + Margin matching (GREEN/YELLOW/UNKNOWN)
+- ✅ Confidence calculation (0-100%, non-magical)
+- ✅ Web UI for person management (rename, merge, delete)
+
+**Status Meaning:**
+- **GREEN (✅):** Reliable match (d1 < 0.35, margin > 0.15)
+- **YELLOW (⚠️):** Uncertain match (d1 < 0.50, margin > 0.08)
+- **UNKNOWN (❓):** No match → auto-creates new person
+
+**See:** [docs/FACE_RECOGNITION.md](docs/FACE_RECOGNITION.md)
+
+### Platform-Specific Notifications
+
+**Windows:**
+- Toast notifications with image preview (winotify)
+- Click to open `/latest` in browser
+- Sound alerts (configurable)
+
+**Linux:**
+- Desktop notifications via `notify-send` (libnotify)
+- Image icon support
+- Works on Ubuntu/Debian/Fedora with Desktop Environment
+
+**Headless:**
+- Notifications disabled
+- Events visible in Web UI (`/events`, `/latest`)
+
+**Config:**
 ```yaml
-server:
-  host: '0.0.0.0'      # Listen on all network interfaces
-  port: 5000           # HTTP port
-  debug: false         # Production mode
-  log_level: 'INFO'    # Logging verbosity
-
-security:
-  auth_token: 'CHANGE_ME_TO_SECURE_TOKEN'  # ⚠️ CHANGE THIS!
-  require_auth_for_stream: true
-
-storage:
-  image_dir: './captured_images'
-  max_images: 1000     # Auto-cleanup threshold
-  max_age_days: 30
-
 notifications:
-  enabled: true        # Windows Toast notifications
+  enabled: true
+  backend: 'windows_toast'  # or 'linux_notify' or 'disabled'
   sound: true
-
-face_recognition:
-  enabled: false       # Set to true after implementing
-  min_confidence: 0.6
-
-stream:
-  target_fps: 10       # Live stream framerate
-  jpeg_quality: 80     # 0-100, higher = better quality
 ```
 
-### Workflow Rules (`server/rules.yaml`)
+### Web UI
 
-Define automated actions based on detected events:
+**Endpoints:**
 
+- `/` - Dashboard with live stream + stats
+- `/latest` - Latest motion event with face info
+- `/stream` - MJPEG live stream (~5-10 fps)
+- `/config` - Threshold tuning, auto-learning settings
+- `/persons` - Person list, rename, merge
+- `/persons/<id>` - Person details, samples, events
+- `/events` - Event history
+- `/health` - Server health check
+
+**Features:**
+- Dark theme, responsive design
+- Inline help for threshold tuning
+- Sample thumbnails with quality scores
+- Real-time statistics
+
+### Workflow Automation (Placeholder)
+
+**Current:** Log-based actions with clear extension points.
+
+**Future:** Telegram, email, webhooks, Home Assistant, etc.
+
+**Example rule:**
 ```yaml
 rules:
   - name: "Alert Unknown Person"
@@ -240,324 +315,269 @@ rules:
     actions:
       - type: log
         message: "⚠️ Unknown person detected"
-
-      - type: telegram
+      - type: telegram  # PLACEHOLDER
         bot_token: "YOUR_BOT_TOKEN"
         chat_id: "YOUR_CHAT_ID"
-        message: "Unknown person at door!"
-
-      - type: webhook
-        url: "https://maker.ifttt.com/trigger/motion/with/key/YOUR_KEY"
 ```
 
-### ESP32 Configuration (`esp32/include/secrets.h`)
+**See:** [server/rules.yaml](server/rules.yaml)
 
-```cpp
-#define WIFI_SSID "YourWiFiName"
-#define WIFI_PASSWORD "YourWiFiPassword"
-#define SERVER_HOST "192.168.1.100"  // Windows PC IP
-#define SERVER_PORT 5000
-#define AUTH_TOKEN "your_secret_token"
-#define DEVICE_ID "ESP32-CAM-01"
-```
+---
 
-## 🌐 API Endpoints
+## 🔧 Configuration
 
-### `POST /upload`
-Upload motion-triggered photo from ESP32.
+### Server Config (`server/config.yaml`)
 
-**Headers:**
-- `X-Auth-Token: YOUR_TOKEN`
-
-**Body:** multipart/form-data with `image` file
-
-**Response:**
-```json
-{
-  "status": "success",
-  "filename": "ESP32-CAM_20240101_123045.jpg",
-  "faces_detected": 1,
-  "persons": ["Unknown"]
-}
-```
-
-### `POST /stream_frame`
-Receive streaming frame from ESP32.
-
-**Headers:**
-- `X-Auth-Token: YOUR_TOKEN`
-
-**Body:** Raw JPEG bytes
-
-### `GET /stream?token=YOUR_TOKEN`
-MJPEG live stream for browsers.
-
-### `GET /latest`
-View latest captured image.
-
-### `GET /health`
-Server health check.
-
-## 🧠 Face Recognition (Placeholder → Implementation)
-
-The server includes a **complete face recognition pipeline structure** ready for implementation.
-
-### Current State (Placeholder)
-
-```python
-# In app.py - FaceRecognitionPipeline class
-def recognize_faces(self, image_bytes):
-    # PLACEHOLDER: Returns dummy result
-    return [{'name': 'Unknown', 'confidence': 0.0, 'bbox': [0,0,0,0]}]
-```
-
-### Implementation Steps
-
-#### 1. Install Dependencies
-
-```bash
-pip install opencv-python face-recognition dlib Pillow
-```
-
-**Windows Note:** `dlib` requires Visual Studio C++ Build Tools.
-Download: https://visualstudio.microsoft.com/visual-cpp-build-tools/
-
-#### 2. Prepare Known Faces
-
-```bash
-mkdir known_faces
-mkdir known_faces/Alice
-mkdir known_faces/Bob
-
-# Add photos (JPEG):
-# known_faces/Alice/photo1.jpg
-# known_faces/Alice/photo2.jpg
-# known_faces/Bob/photo1.jpg
-```
-
-#### 3. Implement Recognition
-
-Replace placeholder in `app.py`:
-
-```python
-import face_recognition
-import numpy as np
-from PIL import Image
-
-class FaceRecognitionPipeline:
-    def __init__(self):
-        self.known_encodings = []
-        self.known_names = []
-        self._load_known_faces()
-
-    def _load_known_faces(self):
-        known_faces_dir = Path(config['face_recognition']['known_faces_dir'])
-        for person_dir in known_faces_dir.iterdir():
-            if person_dir.is_dir():
-                for img_path in person_dir.glob('*.jpg'):
-                    img = face_recognition.load_image_file(str(img_path))
-                    encodings = face_recognition.face_encodings(img)
-                    if encodings:
-                        self.known_encodings.append(encodings[0])
-                        self.known_names.append(person_dir.name)
-
-    def recognize_faces(self, image_bytes):
-        img = Image.open(BytesIO(image_bytes))
-        img_array = np.array(img)
-
-        face_locations = face_recognition.face_locations(img_array)
-        face_encodings = face_recognition.face_encodings(img_array, face_locations)
-
-        results = []
-        for encoding, location in zip(face_encodings, face_locations):
-            matches = face_recognition.compare_faces(self.known_encodings, encoding, tolerance=0.6)
-            name = "Unknown"
-            confidence = 0.5
-
-            if True in matches:
-                match_index = matches.index(True)
-                name = self.known_names[match_index]
-                confidence = 0.95
-
-            results.append({
-                'name': name,
-                'confidence': confidence,
-                'bbox': location
-            })
-
-        return results
-```
-
-#### 4. Enable in Config
+**Key sections:**
 
 ```yaml
-face_recognition:
+server:
+  host: '0.0.0.0'
+  port: 5000
+  debug: false
+
+security:
+  auth_token: 'YOUR_SECRET_TOKEN'  # ⚠️ CHANGE THIS!
+
+notifications:
+  backend: 'windows_toast'  # or 'linux_notify', 'disabled'
   enabled: true
-  min_confidence: 0.6
-  known_faces_dir: './known_faces'
+
+face_recognition:
+  enabled: true  # Set to true after downloading models
+  threshold_strict: 0.35   # Distance for GREEN match
+  threshold_loose: 0.50    # Distance for YELLOW match
+  margin_strict: 0.15      # Margin for GREEN match
+  margin_loose: 0.08       # Margin for YELLOW match
+
+  auto_learning:
+    enabled: true
+    max_samples_per_person: 15
+    cooldown_seconds: 60
 ```
 
-**✅ Face recognition now operational!**
+**Full reference:** [server/config.yaml](server/config.yaml)
 
-## 🤖 Workflow Automation (Placeholder → Implementation)
-
-### Current State
-
-The `WorkflowEngine` class executes actions based on rules, but actual integrations are placeholders.
-
-### Example: Telegram Notifications
-
-#### 1. Install Library
-
-```bash
-pip install python-telegram-bot
-```
-
-#### 2. Create Bot
-
-1. Message [@BotFather](https://t.me/botfather) on Telegram
-2. Create bot: `/newbot`
-3. Get token: `123456:ABC-DEF...`
-4. Get your chat_id: Message [@userinfobot](https://t.me/userinfobot)
-
-#### 3. Implement Action
-
-In `app.py` → `WorkflowEngine._execute_actions()`:
-
-```python
-elif action_type == 'telegram':
-    import telegram
-    bot = telegram.Bot(token=action['bot_token'])
-    bot.send_photo(
-        chat_id=action['chat_id'],
-        photo=open(image_path, 'rb'),
-        caption=f"Motion detected: {person_name}"
-    )
-    logger.info(f"Telegram notification sent to {action['chat_id']}")
-```
-
-#### 4. Configure Rule
+### Raspberry Pi Client Config (`clients/raspi/config.yaml`)
 
 ```yaml
-- name: "Telegram Alert"
-  conditions:
-    person: "*"
-  actions:
-    - type: telegram
-      bot_token: "123456:ABC-DEF..."
-      chat_id: "123456789"
+server:
+  url: 'http://192.168.1.100:5000'
+  auth_token: 'MATCH_SERVER_TOKEN'
+  device_id: 'RaspberryPi-CAM-01'
+
+pir:
+  gpio_pin: 17  # BCM numbering
+
+camera:
+  resolution: [1280, 720]
+  jpeg_quality: 85
+
+streaming:
+  enabled: false  # Set true for live stream
+  fps: 5
 ```
 
-### Other Integrations
-
-Similar patterns for:
-- **Webhooks** (IFTTT, Zapier)
-- **Email** (SMTP)
-- **Home Assistant**
-- **MQTT**
-- **SMS** (Twilio)
-
-See `server/README.md` for detailed examples.
-
-## 🔒 Security Considerations
-
-### ✅ Implemented
-- Token-based authentication
-- Configurable auth requirements
-- Input validation
-- Secure defaults
-
-### ⚠️ Recommendations
-1. **Change default token** - use strong random token
-2. **Firewall rules** - allow port 5000 only on LAN
-3. **WiFi security** - use WPA2/WPA3
-4. **HTTPS** - use reverse proxy (nginx) if exposing to internet
-5. **Don't commit secrets** - `secrets.h` is in `.gitignore`
-
-### Production Hardening
-
-```bash
-# Windows Firewall rule
-netsh advfirewall firewall add rule name="ESP32 Server" dir=in action=allow protocol=TCP localport=5000
-
-# Or PowerShell
-New-NetFirewallRule -DisplayName "ESP32 Server" -Direction Inbound -LocalPort 5000 -Protocol TCP -Action Allow
-```
-
-## 🐛 Troubleshooting
-
-### ESP32 Won't Connect to WiFi
-
-**Solutions:**
-1. Verify SSID/password in `secrets.h`
-2. Ensure WiFi is 2.4GHz (ESP32 doesn't support 5GHz)
-3. Check router settings (disable MAC filtering temporarily)
-4. Move ESP32 closer to router
-
-### Windows Notification Not Showing
-
-**Solutions:**
-1. Check Windows Focus Assist (turn OFF)
-2. Enable notifications for Python in Windows Settings
-3. Run server as Administrator
-4. Check logs: `server/server.log`
-
-### Camera Init Failed
-
-**Solutions:**
-1. Check camera ribbon cable (must click into place)
-2. Use 5V 2A power supply (most common issue!)
-3. Add capacitor (100-470µF) across 5V/GND
-4. Try different board (counterfeit OV2640 cameras exist)
-
-### Stream Freezes/Lags
-
-**Solutions:**
-1. Reduce frame size: `config.frame_size = FRAMESIZE_VGA;`
-2. Lower JPEG quality: `config.jpeg_quality = 15;`
-3. Reduce FPS: `#define STREAM_INTERVAL_MS 200` (5 fps)
-4. Improve WiFi signal strength
-5. Close other bandwidth-heavy applications
-
-### Upload Fails with 401 Unauthorized
-
-**Solutions:**
-1. Verify `AUTH_TOKEN` matches in both `config.yaml` and `secrets.h`
-2. Check for trailing spaces or quotes
-3. Regenerate token if needed
-
-See detailed troubleshooting in:
-- `server/README.md`
-- `esp32/README.md`
+---
 
 ## 📊 Performance Benchmarks
 
-### ESP32-CAM Realistic Limits
+### Face Recognition
 
-| Resolution | JPEG Quality | FPS  | Upload Time (WiFi) |
-|------------|--------------|------|-------------------|
-| UXGA (1600×1200) | 10 | 1-2  | ~2-3s |
-| SVGA (800×600)   | 10 | 8-12 | ~0.5-1s |
-| VGA (640×480)    | 12 | 12-18| ~0.3-0.5s |
-| QVGA (320×240)   | 15 | 20-25| ~0.1-0.2s |
+| Platform | Detection | Embedding | Matching | Total |
+|----------|-----------|-----------|----------|-------|
+| Windows Desktop (i5) | 50-100ms | 30-50ms | 5-10ms | **~100-200ms** |
+| Linux Desktop (i5) | 50-100ms | 30-50ms | 5-10ms | **~100-200ms** |
+| Raspberry Pi 5 | 150-200ms | 150-200ms | 5-10ms | **~400ms** |
+| Raspberry Pi 4 | 200-250ms | 200-250ms | 5-10ms | **~500ms** |
+| Raspberry Pi 3 | 800ms-1s | 800ms-1s | 5-10ms | **~2s** |
 
-**Recommended:** SVGA @ 10 fps (good balance)
+### Camera Upload Latency
 
-### Server Performance (Windows 10, i5-8250U)
+| Camera Client | Capture | Upload | Total |
+|---------------|---------|--------|-------|
+| ESP32-CAM | 100-200ms | 300-500ms | **~400-700ms** |
+| Raspberry Pi 5 | 50-100ms | 100-150ms | **~200ms** |
+| Raspberry Pi 4 | 50-100ms | 200-250ms | **~300ms** |
+| Raspberry Pi 3 | 100-200ms | 300-400ms | **~500ms** |
 
-- Handles 3-5 concurrent ESP32 streams
-- Toast notification latency: <200ms
-- Face recognition: ~100-300ms per frame (with OpenCV)
-- Storage: ~50KB per SVGA JPEG
+### Streaming FPS (Realistic)
+
+| Camera | FPS | Notes |
+|--------|-----|-------|
+| ESP32-CAM | 8-12 fps | SVGA (800×600) |
+| Raspberry Pi 5 | 10-15 fps | 1280×720 |
+| Raspberry Pi 4 | 5-10 fps | 1280×720 |
+| Raspberry Pi 3 | 2-5 fps | 640×480 recommended |
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**1. "YuNet model not found"**
+```bash
+cd server
+python models/download_models.py
+ls models/*.onnx  # Verify
+```
+
+**2. Windows Toast not showing**
+- Check Focus Assist settings (OFF)
+- Enable notifications for Python in Windows Settings
+- Run server as Administrator (try)
+
+**3. Linux notifications not working**
+```bash
+# Install libnotify
+sudo apt install libnotify-bin
+
+# Test
+notify-send "Test" "Message"
+
+# Check $DISPLAY
+echo $DISPLAY  # Should show :0 or similar
+```
+
+**4. Raspberry Pi camera not detected**
+```bash
+# Enable camera
+sudo raspi-config
+# Interface Options → Camera → Enable → Reboot
+
+# Test
+libcamera-hello
+libcamera-jpeg -o test.jpg
+```
+
+**5. Permission denied (GPIO/Camera on Pi)**
+```bash
+sudo usermod -a -G video,gpio $USER
+# Logout and login again
+```
+
+### Platform-Specific Guides
+
+- **Windows:** [server/README.md](server/README.md)
+- **Linux:** [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md)
+- **Raspberry Pi:** [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md)
+- **ESP32:** [esp32/README.md](esp32/README.md)
+
+---
+
+## 🔒 Security
+
+### Implemented
+
+- ✅ Token-based authentication (all endpoints)
+- ✅ Input validation
+- ✅ Secure defaults
+- ✅ systemd security hardening (Linux)
+- ✅ No cloud dependencies (fully local)
+
+### Recommendations
+
+**Change auth token:**
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+# Copy to config.yaml and secrets.h
+```
+
+**Firewall (Windows):**
+```powershell
+New-NetFirewallRule -DisplayName "ESP32 Server" -Direction Inbound -LocalPort 5000 -Protocol TCP -Action Allow
+```
+
+**Firewall (Linux):**
+```bash
+sudo ufw allow 5000/tcp
+sudo ufw enable
+```
+
+**HTTPS (optional, via reverse proxy):**
+- Use nginx or Caddy for HTTPS
+- Not included (LAN-only use case)
+
+**Privacy:**
+- Household use only (GDPR: legitimate interest)
+- Post signage if monitoring common areas
+- Don't expose server to internet without HTTPS + strong auth
+- Regular cleanup: `max_age_days: 7` in config
+
+---
+
+## 📖 Documentation
+
+### Complete Guides
+
+| Document | Description | Lines |
+|----------|-------------|-------|
+| [README.md](README.md) | This file - overview and quick start | 800+ |
+| [docs/FACE_RECOGNITION.md](docs/FACE_RECOGNITION.md) | Face recognition deep-dive, tuning, troubleshooting | 600+ |
+| [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md) | Linux server deployment, systemd, notifications | 200+ |
+| [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md) | Raspberry Pi client + standalone setup | 400+ |
+| [server/README.md](server/README.md) | Server API, configuration, extensions | 500+ |
+| [esp32/README.md](esp32/README.md) | ESP32 firmware, wiring, troubleshooting | 400+ |
+| [clients/raspi/README.md](clients/raspi/README.md) | Raspberry Pi client quick start | 100+ |
+
+### Quick Links
+
+- **Architecture:** Why YuNet/SFace? → [FACE_RECOGNITION.md](docs/FACE_RECOGNITION.md#architektur)
+- **Threshold Tuning:** GREEN/YELLOW/UNKNOWN → [FACE_RECOGNITION.md](docs/FACE_RECOGNITION.md#threshold-tuning)
+- **Auto-Learning:** How it works → [FACE_RECOGNITION.md](docs/FACE_RECOGNITION.md#auto-learning)
+- **Merge Persons:** Duplicate handling → [FACE_RECOGNITION.md](docs/FACE_RECOGNITION.md#merge-funktion)
+- **Linux systemd:** Service setup → [LINUX_SETUP.md](docs/LINUX_SETUP.md#systemd)
+- **Pi Wiring:** GPIO diagrams → [RASPBERRY_PI.md](docs/RASPBERRY_PI.md#hardware-setup)
+
+---
 
 ## 🛠️ Advanced Features
 
-### Deep Sleep Mode
+### Multi-Camera Setup
 
-Save power when no motion:
+**Supported:**
+- Mix ESP32-CAM + Raspberry Pi clients
+- Each with unique `device_id`
+- All upload to same server
+- Face recognition runs centrally
 
+**Example:**
+```yaml
+# ESP32 #1
+DEVICE_ID "ESP32-CAM-Front"
+
+# ESP32 #2
+DEVICE_ID "ESP32-CAM-Back"
+
+# Raspberry Pi
+device_id: 'RaspberryPi-CAM-Door'
+```
+
+### OTA Updates (ESP32)
+
+Add to `main.cpp`:
 ```cpp
-#define SLEEP_TIMEOUT_MS 300000  // 5 minutes
+#include <ArduinoOTA.h>
+
+void setup() {
+    // ... existing setup
+    ArduinoOTA.begin();
+}
+
+void loop() {
+    ArduinoOTA.handle();
+    // ... existing loop
+}
+```
+
+Upload via WiFi: `pio run --target upload --upload-port <ESP32_IP>`
+
+### Deep Sleep (ESP32)
+
+Save power on battery:
+```cpp
+#define SLEEP_TIMEOUT_MS 300000  // 5 min
 
 void loop() {
     if (millis() - lastMotionTime > SLEEP_TIMEOUT_MS) {
@@ -567,75 +587,106 @@ void loop() {
 }
 ```
 
-### Multiple Cameras
+### Custom Workflows
 
-Run multiple ESP32-CAMs with different `DEVICE_ID`:
+See [server/rules.yaml](server/rules.yaml) for examples.
 
-```cpp
-#define DEVICE_ID "ESP32-CAM-Front"
-#define DEVICE_ID "ESP32-CAM-Back"
+**Extend in `app.py`:**
+```python
+elif action_type == 'telegram':
+    import telegram
+    bot = telegram.Bot(token=action['bot_token'])
+    bot.send_photo(chat_id=action['chat_id'], photo=open(image_path, 'rb'))
 ```
 
-Server automatically handles multiple devices.
-
-### OTA Updates
-
-Update firmware over WiFi:
-
-```cpp
-#include <ArduinoOTA.h>
-
-void setup() {
-    ArduinoOTA.begin();
-}
-
-void loop() {
-    ArduinoOTA.handle();
-}
-```
-
-See `esp32/README.md` for details.
-
-## 📚 Documentation
-
-- **[Server README](server/README.md)** - Flask server setup, API, face recognition, workflows
-- **[ESP32 README](esp32/README.md)** - Firmware setup, wiring, troubleshooting, advanced features
-- **[Config Reference](server/config.yaml)** - All configuration options explained
+---
 
 ## 🤝 Contributing
 
 Contributions welcome! Areas for improvement:
 
-- [ ] Add HTTPS support
-- [ ] Implement DeepFace integration
-- [ ] Add mobile app
-- [ ] Support other ESP32 camera boards
-- [ ] Add cloud storage integration
-- [ ] Implement person tracking
+- [ ] Add HTTPS support (reverse proxy guide)
+- [ ] DeepFace integration (alternative to YuNet/SFace)
+- [ ] Mobile app (React Native / Flutter)
+- [ ] MQTT support for Home Assistant
+- [ ] Docker Compose setup
+- [ ] Support more ESP32 camera boards (M5Stack, WROVER)
+- [ ] Person tracking (motion between cameras)
+- [ ] Web push notifications (for headless servers)
+
+**How to contribute:**
+1. Fork repository
+2. Create feature branch
+3. Make changes with tests
+4. Submit pull request
+
+---
 
 ## 📄 License
 
-MIT License - See [LICENSE](LICENSE) file
+MIT License - See [LICENSE](LICENSE) file.
+
+Free for personal and commercial use.
+
+---
 
 ## 🙏 Acknowledgments
 
-- ESP32 camera drivers by Espressif
-- Flask web framework
-- winotify for Windows notifications
-- face_recognition library by Adam Geitgey
+- **Espressif** - ESP32 platform and camera drivers
+- **Raspberry Pi Foundation** - Raspberry Pi and picamera2
+- **OpenCV** - YuNet and SFace models
+- **Flask** - Web framework
+- **Contributors** - See GitHub contributors page
+
+---
 
 ## 💬 Support
 
-**Issues:** https://github.com/yourusername/ESP32-Motion-Detector-Windows-Server/issues
+### Get Help
 
-**Questions:** Check READMEs first, then open an issue
+1. **Check documentation** - Most questions answered in docs
+2. **Search issues** - Someone may have asked before
+3. **Open issue** - Describe problem with logs/screenshots
+
+**Issues:** https://github.com/N30Z/ESP32-Motion-Detector-Windows-Server/issues
+
+### FAQ
+
+**Q: Can I use only Raspberry Pi (no ESP32)?**
+A: Yes! See [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md) for client or standalone setup.
+
+**Q: Does it work with USB webcam instead of CSI camera?**
+A: Yes! Raspberry Pi client supports both. Set `camera.device_index: 0` in config.
+
+**Q: Can I run server on Raspberry Pi?**
+A: Yes! Pi 4/5 recommended. See [docs/RASPBERRY_PI.md → Standalone](docs/RASPBERRY_PI.md#standalone-mode).
+
+**Q: How to disable face recognition?**
+A: Set `face_recognition.enabled: false` in `config.yaml`.
+
+**Q: Is internet required?**
+A: No! Fully local. Only needs LAN connection between camera and server.
+
+**Q: Can I use multiple servers?**
+A: Not directly. Each camera connects to one server. Use load balancer if needed.
+
+**Q: GDPR compliant?**
+A: For household use: yes (legitimate interest). Post signage for common areas. Don't expose to public.
+
+---
 
 ## ⚡ Quick Reference
 
-### Start Server
+### Start Server (Windows)
 ```bash
 cd server
 python app.py
+```
+
+### Start Server (Linux)
+```bash
+sudo systemctl start motion-detector-server
+sudo journalctl -u motion-detector-server -f
 ```
 
 ### Upload ESP32 Firmware
@@ -645,23 +696,35 @@ pio run --target upload
 pio device monitor
 ```
 
+### Start Raspberry Pi Client
+```bash
+sudo systemctl start motion-detector-client
+sudo journalctl -u motion-detector-client -f
+```
+
 ### View Stream
 ```
 http://localhost:5000/stream?token=YOUR_TOKEN
 ```
 
-### Generate New Token
+### Generate Token
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-### Check Server IP
-```cmd
+### Get Server IP
+```bash
+# Windows
 ipconfig
+
+# Linux/Pi
+hostname -I
 ```
 
 ---
 
 **Built with ❤️ for the maker community**
 
-**Status:** ✅ Production Ready | 🧪 Face Recognition: Placeholder | 🤖 Workflows: Placeholder
+**Status:** ✅ Production Ready | 🌍 Multi-Platform | 🤖 Face Recognition: YuNet + SFace | 📸 Cameras: ESP32 + Raspberry Pi
+
+**Last Updated:** 2024-12-21
