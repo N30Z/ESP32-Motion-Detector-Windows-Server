@@ -2,6 +2,8 @@
 
 Arduino/PlatformIO firmware for ESP32-CAM with PIR motion sensor.
 
+> **💡 Alternative:** Looking for a Raspberry Pi camera solution? See [clients/raspi](../clients/raspi) for Python-based PIR camera client with CSI/USB camera support.
+
 ## Hardware Requirements
 
 ### ESP32-CAM Board
