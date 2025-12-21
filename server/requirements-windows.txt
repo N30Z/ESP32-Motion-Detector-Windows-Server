@@ -1,0 +1,5 @@
+# Windows-specific dependencies
+# ==============================
+
+# Windows Toast notifications
+winotify==1.1.0

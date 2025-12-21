@@ -1,0 +1,26 @@
+[Unit]
+Description=Motion Detector Camera Client (Raspberry Pi)
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/motion-detector-client
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/usr/bin/python3 pir_cam_client.py
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=motion-detector-client
+
+# Allow GPIO access
+SupplementaryGroups=gpio video
+
+[Install]
+WantedBy=multi-user.target

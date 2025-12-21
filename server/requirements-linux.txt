@@ -1,0 +1,9 @@
+# Linux-specific dependencies
+# ===========================
+
+# Linux desktop notifications (optional - only if backend: linux_notify)
+# Note: notify-send command-line tool from libnotify-bin package required
+#       Install system package: sudo apt install libnotify-bin
+
+# No additional Python packages needed for Linux notifications
+# (uses subprocess to call notify-send)

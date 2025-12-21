@@ -25,10 +25,16 @@ storage:
   max_age_days: 30
 
 notifications:
-  # Enable Windows Toast notifications
+  # Enable notifications
   enabled: true
 
-  # Play sound with notification
+  # Notification backend: 'windows_toast', 'linux_notify', 'disabled'
+  # - windows_toast: Windows 10/11 Toast notifications (requires winotify)
+  # - linux_notify: Linux Desktop notifications via notify-send (requires libnotify)
+  # - disabled: No OS notifications (headless servers, events visible in Web UI)
+  backend: 'windows_toast'  # Change to 'linux_notify' on Linux or 'disabled' for headless
+
+  # Play sound with notification (if supported by backend)
   sound: true
 
 face_recognition:
