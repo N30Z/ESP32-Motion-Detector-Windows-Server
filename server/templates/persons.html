@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Personenverwaltung{% endblock %}
+
+{% block content %}
+<h1>👥 Personenverwaltung</h1>
+
+<p>Insgesamt {{ persons|length }} Personen registriert.</p>
+
+<table class="person-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Samples</th>
+            <th>Erstellt</th>
+            <th>Aktionen</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for person in persons %}
+        <tr>
+            <td>{{ person.id }}</td>
+            <td>
+                <strong>{{ person.name }}</strong>
+                {% if person.name.startswith('Unbekannt') %}
+                <span class="badge badge-unknown">Unbenannt</span>
+                {% endif %}
+            </td>
+            <td>{{ person.sample_count }} Samples</td>
+            <td>{{ person.created_at }}</td>
+            <td>
+                <a href="/persons/{{ person.id }}" class="button-small">Details</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>🔀 Personen zusammenführen (Merge)</h2>
+<form method="POST" action="/persons/merge" class="merge-form">
+    <div class="form-row">
+        <div class="form-group">
+            <label for="from_id">Von Person (wird gelöscht):</label>
+            <select name="from_id" id="from_id" required>
+                <option value="">-- Person wählen --</option>
+                {% for person in persons %}
+                <option value="{{ person.id }}">{{ person.id }}: {{ person.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="into_id">In Person (bleibt erhalten):</label>
+            <select name="into_id" id="into_id" required>
+                <option value="">-- Person wählen --</option>
+                {% for person in persons %}
+                <option value="{{ person.id }}">{{ person.id }}: {{ person.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <button type="submit" class="button button-warning"
+            onclick="return confirm('Wirklich zusammenführen? Dies kann nicht rückgängig gemacht werden!')">
+        🔀 Merge durchführen
+    </button>
+</form>
+
+<p class="help-text">
+    ⚠️ <strong>Hinweis:</strong> Beim Merge werden alle Samples von Person A zu Person B verschoben.
+    Person A wird als "merged" markiert und ist danach nicht mehr sichtbar.
+</p>
+{% endblock %}

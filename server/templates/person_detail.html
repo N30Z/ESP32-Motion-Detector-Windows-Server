@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}{{ person.name }} - Details{% endblock %}
+
+{% block content %}
+<h1>👤 {{ person.name }}</h1>
+
+<div class="person-meta">
+    <p><strong>ID:</strong> {{ person.id }}</p>
+    <p><strong>Erstellt:</strong> {{ person.created_at }}</p>
+    <p><strong>Aktualisiert:</strong> {{ person.updated_at }}</p>
+    <p><strong>Samples:</strong> {{ samples|length }}</p>
+</div>
+
+<h2>✏️ Name bearbeiten</h2>
+<form method="POST" action="/persons/{{ person.id }}/rename" class="inline-form">
+    <input type="text" name="name" value="{{ person.name }}" required>
+    <button type="submit" class="button">💾 Speichern</button>
+</form>
+
+<h2>📸 Face Samples ({{ samples|length }})</h2>
+
+{% if samples %}
+<div class="samples-grid">
+    {% for sample in samples %}
+    <div class="sample-card">
+        <img src="/image/{{ sample.image_path.split('/')[-1] }}" alt="Sample {{ sample.id }}">
+        <div class="sample-info">
+            <p><strong>Quality:</strong> {{ "%.2f"|format(sample.quality_score) }}</p>
+            <p><strong>Date:</strong> {{ sample.created_at }}</p>
+            <p><small>ID: {{ sample.id }}</small></p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="no-data">Keine Samples vorhanden.</p>
+{% endif %}
+
+<h2>📋 Letzte Events ({{ events|length }})</h2>
+
+{% if events %}
+<table>
+    <tr>
+        <th>Time</th>
+        <th>Confidence</th>
+        <th>Status</th>
+        <th>Distance</th>
+        <th>Margin</th>
+    </tr>
+    {% for event in events %}
+    <tr>
+        <td>{{ event.timestamp }}</td>
+        <td>{{ "%.0f"|format(event.confidence * 100) }}%</td>
+        <td>
+            {% if event.status == 'GREEN' %}✅{% elif event.status == 'YELLOW' %}⚠️{% else %}❓{% endif %}
+            {{ event.status }}
+        </td>
+        <td>{{ "%.3f"|format(event.distance) }}</td>
+        <td>{{ "%.3f"|format(event.margin) }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p class="no-data">Keine Events vorhanden.</p>
+{% endif %}
+
+<h2>🗑️ Gefahrenzone</h2>
+<form method="POST" action="/persons/{{ person.id }}/delete"
+      onsubmit="return confirm('Person {{ person.name }} wirklich löschen? Dies kann nicht rückgängig gemacht werden!')">
+    <button type="submit" class="button button-danger">🗑️ Person löschen</button>
+</form>
+
+<p><a href="/persons">← Zurück zur Übersicht</a></p>
+{% endblock %}
