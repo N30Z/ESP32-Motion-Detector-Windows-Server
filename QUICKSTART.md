@@ -7,13 +7,13 @@
 **1. Install Server (One Command):**
 ```bash
 git clone https://github.com/N30Z/ESP32-Motion-Detector-Windows-Server.git
-cd ESP32-Motion-Detector-Windows-Server/server
+cd ESP32-Motion-Detector-Windows-Server/Server
 setup.bat
 ```
 
 **2. Configure ESP32:**
 ```bash
-cd ../esp32
+cd ../ESP32/Client
 # Copy and edit secrets
 copy include\secrets.h.example include\secrets.h
 notepad include\secrets.h
@@ -46,14 +46,14 @@ PIR HC-SR501:
 **1. Install Server (One Command):**
 ```bash
 git clone https://github.com/N30Z/ESP32-Motion-Detector-Windows-Server.git
-cd ESP32-Motion-Detector-Windows-Server/server
+cd ESP32-Motion-Detector-Windows-Server/Server
 chmod +x setup.sh
 ./setup.sh
 ```
 
 **2. Configure ESP32:**
 ```bash
-cd ../esp32
+cd ../ESP32/Client
 cp include/secrets.h.example include/secrets.h
 nano include/secrets.h
 
@@ -82,7 +82,7 @@ pio run --target upload
 ```bash
 # On Raspberry Pi
 git clone https://github.com/N30Z/ESP32-Motion-Detector-Windows-Server.git
-cd ESP32-Motion-Detector-Windows-Server/clients/raspi
+cd ESP32-Motion-Detector-Windows-Server/Raspberry-Pi/Client
 chmod +x setup.sh
 ./setup.sh
 
@@ -113,7 +113,7 @@ PIR HC-SR501:
 **Install Server on Pi (One Command):**
 ```bash
 git clone https://github.com/N30Z/ESP32-Motion-Detector-Windows-Server.git
-cd ESP32-Motion-Detector-Windows-Server/server
+cd ESP32-Motion-Detector-Windows-Server/Server
 chmod +x setup.sh
 ./setup.sh
 
@@ -195,9 +195,9 @@ netsh advfirewall firewall add rule name="ESP32 Server" dir=in action=allow prot
 - **Complete README:** [README.md](README.md)
 - **Installation & Troubleshooting:** [INSTALLATION.md](INSTALLATION.md)
 - **Face Recognition:** [docs/FACE_RECOGNITION.md](docs/FACE_RECOGNITION.md)
-- **Linux Server:** [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md)
-- **Raspberry Pi:** [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md)
-- **ESP32 Firmware:** [esp32/README.md](esp32/README.md)
+- **Linux Server:** [Linux/Linux.md](Linux/Linux.md)
+- **Raspberry Pi:** [Raspberry-Pi/Raspberry.md](Raspberry-Pi/Raspberry.md)
+- **ESP32 Firmware:** [ESP32/ESP32.md](ESP32/ESP32.md)
 
 ---
 
