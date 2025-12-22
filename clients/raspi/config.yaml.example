@@ -46,5 +46,5 @@ logging:
   # Log level: DEBUG, INFO, WARNING, ERROR
   level: 'INFO'
 
-  # Log file path
-  file: '/var/log/motion-detector-client.log'
+  # Log file path (use /var/log/ only for systemd service)
+  file: './logs/client.log'

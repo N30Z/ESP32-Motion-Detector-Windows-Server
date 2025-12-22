@@ -191,6 +191,11 @@ else
     log_info "config.yaml already exists"
 fi
 
+# Create logs directory
+log_info "Creating logs directory..."
+mkdir -p logs
+log_success "Logs directory created"
+
 # Step 8: Setup GPIO permissions
 log_info "Setting up GPIO permissions..."
 if ! groups $USER | grep -q gpio; then
@@ -234,6 +239,10 @@ if [[ ! $REPLY =~ ^[Nn]$ ]]; then
     SCRIPT_DIR=$(pwd)
     SERVICE_FILE="/etc/systemd/system/motion-detector-client.service"
 
+    # For systemd service, use /var/log (journalctl captures stdout anyway)
+    log_info "Note: Systemd service will log to journalctl"
+    log_info "View logs with: sudo journalctl -u motion-detector-client -f"
+
     sudo tee $SERVICE_FILE > /dev/null << EOF
 [Unit]
 Description=ESP32 Motion Detector - Raspberry Pi Client
@@ -254,6 +263,8 @@ EOF
     sudo tee -a $SERVICE_FILE > /dev/null << EOF
 Restart=always
 RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
