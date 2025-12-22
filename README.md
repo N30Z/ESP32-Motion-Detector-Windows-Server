@@ -83,7 +83,47 @@ Single Raspberry Pi runs both camera + server.
 
 ---
 
-## 🚀 Quick Start (Windows + ESP32)
+## ⚡ Quick Installation
+
+### One-Command Setup
+
+**Windows Server:**
+```bash
+git clone <repo-url>
+cd ESP32-Motion-Detector-Windows-Server/server
+setup.bat
+```
+
+**Linux Server:**
+```bash
+git clone <repo-url>
+cd ESP32-Motion-Detector-Windows-Server/server
+./setup.sh
+```
+
+**Raspberry Pi Client:**
+```bash
+git clone <repo-url>
+cd ESP32-Motion-Detector-Windows-Server/clients/raspi
+./setup.sh
+```
+
+**That's it!** The setup script automatically:
+- ✅ Checks Python version and dependencies
+- ✅ Installs all required packages
+- ✅ Downloads face recognition models
+- ✅ Creates configuration with auth token
+- ✅ Sets up platform-specific notifications
+- ✅ Tests the installation
+
+**Troubleshooting?** See [INSTALLATION.md](INSTALLATION.md) for detailed solutions to common issues.
+
+---
+
+## 🚀 Manual Setup (Windows + ESP32)
+
+<details>
+<summary>Click to expand manual installation steps</summary>
 
 ### Prerequisites
 
@@ -173,6 +213,8 @@ Power:
 4. View live stream: `http://localhost:5000`
 
 **✅ System operational!**
+
+</details>
 
 ---
 
@@ -727,4 +769,6 @@ hostname -I
 
 **Status:** ✅ Production Ready | 🌍 Multi-Platform | 🤖 Face Recognition: YuNet + SFace | 📸 Cameras: ESP32 + Raspberry Pi
 
-**Last Updated:** 2024-12-21
+**Installation Guide:** [INSTALLATION.md](INSTALLATION.md) - Complete troubleshooting and solutions
+
+**Last Updated:** 2024-12-22
