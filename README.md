@@ -53,7 +53,7 @@ ESP32-CAM → Linux server (Ubuntu/Debian).
 - **Performance:** ~100ms face recognition
 - **Best for:** Linux users, headless servers
 
-**Quick Start:** [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md)
+**Quick Start:** [Linux/Linux.md](Linux/Linux.md)
 
 ---
 
@@ -66,7 +66,7 @@ Raspberry Pi with camera + PIR → Remote server (Windows/Linux).
 - **Performance:** ~200-500ms upload (Pi model dependent)
 - **Best for:** Distributed cameras, existing server
 
-**Quick Start:** [docs/RASPBERRY_PI.md → Client Mode](docs/RASPBERRY_PI.md#client-mode)
+**Quick Start:** [Raspberry-Pi/Raspberry.md → Client Mode](Raspberry-Pi/Raspberry.md#client-modus)
 
 ---
 
@@ -79,7 +79,7 @@ Single Raspberry Pi runs both camera + server.
 - **Performance:** ~400-500ms face recognition (Pi 4)
 - **Best for:** Portable, single-device solution
 
-**Quick Start:** [docs/RASPBERRY_PI.md → Standalone Mode](docs/RASPBERRY_PI.md#standalone-mode)
+**Quick Start:** [Raspberry-Pi/Standalone/README.md](Raspberry-Pi/Standalone/README.md)
 
 ---
 
@@ -90,21 +90,21 @@ Single Raspberry Pi runs both camera + server.
 **Windows Server:**
 ```bash
 git clone <repo-url>
-cd ESP32-Motion-Detector-Windows-Server/server
+cd ESP32-Motion-Detector-Windows-Server/Server
 setup.bat
 ```
 
 **Linux Server:**
 ```bash
 git clone <repo-url>
-cd ESP32-Motion-Detector-Windows-Server/server
+cd ESP32-Motion-Detector-Windows-Server/Server
 ./setup.sh
 ```
 
 **Raspberry Pi Client:**
 ```bash
 git clone <repo-url>
-cd ESP32-Motion-Detector-Windows-Server/clients/raspi
+cd ESP32-Motion-Detector-Windows-Server/Raspberry-Pi/Client
 ./setup.sh
 ```
 
@@ -143,7 +143,7 @@ cd ESP32-Motion-Detector-Windows-Server/clients/raspi
 
 # Clone repository
 git clone <repo-url>
-cd ESP32-Motion-Detector-Windows-Server/server
+cd ESP32-Motion-Detector-Windows-Server/Server
 
 # Install dependencies
 pip install -r requirements.txt
@@ -171,7 +171,7 @@ python app.py
 ### 2. ESP32 Firmware Upload
 
 ```bash
-cd ../esp32
+cd ../ESP32/Client
 
 # Copy secrets
 cp include/secrets.h.example include/secrets.h
@@ -223,16 +223,39 @@ Power:
 ```
 ESP32-Motion-Detector-Windows-Server/
 │
-├── server/                          # Server (Windows/Linux)
-│   ├── core/                        # (not yet refactored, planned)
-│   ├── platform/                    # Platform-specific code
-│   │   ├── notifications.py         #   Abstract notification interface
-│   │   ├── windows_toast.py         #   Windows Toast backend
-│   │   └── linux_notify.py          #   Linux notify-send backend
-│   ├── templates/                   # Web UI templates
-│   ├── static/                      # CSS/JS
-│   ├── models/                      # YuNet/SFace ONNX models
-│   │   └── download_models.py       #   Model downloader
+├── Windows/                         # Windows-specific files
+│   ├── Windows.md                   # Complete Windows guide
+│   └── Server/                      # Windows server setup references
+│
+├── Linux/                           # Linux-specific files
+│   ├── Linux.md                     # Complete Linux guide
+│   ├── Server/                      # Linux server setup
+│   │   ├── motion-detector-server.service
+│   │   └── README.md
+│   └── Client/                      # Future: Native Linux client
+│
+├── Raspberry-Pi/                    # Raspberry Pi configurations
+│   ├── Raspberry.md                 # Complete Raspberry Pi guide
+│   ├── Client/                      # Pi as camera client
+│   │   ├── pir_cam_client.py
+│   │   ├── config.yaml.example
+│   │   ├── setup.sh
+│   │   ├── motion-detector-client.service
+│   │   └── README.md
+│   ├── Server/                      # Pi as server (references)
+│   └── Standalone/                  # All-in-one Pi setup
+│       ├── setup.sh                 # Automated installation
+│       └── README.md
+│
+├── ESP32/                           # ESP32-CAM client
+│   ├── ESP32.md                     # Complete ESP32 guide
+│   └── Client/                      # ESP32-CAM firmware (C++)
+│       ├── src/main.cpp
+│       ├── include/secrets.h.example
+│       ├── platformio.ini
+│       └── README.md
+│
+├── Server/                          # Central server code (shared)
 │   ├── app.py                       # Main Flask application
 │   ├── database.py                  # SQLite database layer
 │   ├── face_recognition_cv.py       # Face recognition pipeline
@@ -241,34 +264,21 @@ ESP32-Motion-Detector-Windows-Server/
 │   ├── requirements.txt             # Base Python dependencies
 │   ├── requirements-windows.txt     # Windows-specific (winotify)
 │   ├── requirements-linux.txt       # Linux-specific (notify-send)
+│   ├── setup.sh                     # Linux/Pi setup script
+│   ├── setup.bat                    # Windows setup script
+│   ├── models/                      # YuNet/SFace ONNX models
+│   ├── templates/                   # Web UI templates
+│   ├── static/                      # CSS/JS assets
+│   ├── notifications/               # Platform-specific notification backends
 │   └── README.md
 │
-├── clients/
-│   ├── esp32/                       # ESP32-CAM firmware (Arduino/C++)
-│   │   ├── src/main.cpp
-│   │   ├── include/secrets.h.example
-│   │   ├── platformio.ini
-│   │   └── README.md
-│   │
-│   └── raspi/                       # Raspberry Pi client (Python)
-│       ├── pir_cam_client.py        # Main client script
-│       ├── config.yaml.example
-│       ├── requirements.txt
-│       └── README.md
+├── docs/                            # Additional documentation
+│   └── FACE_RECOGNITION.md          # Complete FR guide (600+ lines)
 │
-├── deploy/
-│   ├── linux/
-│   │   └── systemd/                 # Linux systemd services
-│   └── raspi/
-│       ├── client/                  # Pi client systemd
-│       └── standalone/              # Standalone setup scripts
-│
-├── docs/
-│   ├── FACE_RECOGNITION.md          # Complete FR guide (500+ lines)
-│   ├── LINUX_SETUP.md               # Linux deployment (200+ lines)
-│   └── RASPBERRY_PI.md              # Raspberry Pi guide (400+ lines)
-│
-└── README.md                        # This file
+├── README.md                        # This file
+├── INSTALLATION.md                  # Installation troubleshooting guide
+├── QUICKSTART.md                    # Quick start for all platforms
+└── AUDIT_REPORT.md                  # Repository restructure documentation
 ```
 
 ---
@@ -501,10 +511,10 @@ sudo usermod -a -G video,gpio $USER
 
 ### Platform-Specific Guides
 
-- **Windows:** [server/README.md](server/README.md)
-- **Linux:** [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md)
-- **Raspberry Pi:** [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md)
-- **ESP32:** [esp32/README.md](esp32/README.md)
+- **Windows:** [Windows/Windows.md](Windows/Windows.md)
+- **Linux:** [Linux/Linux.md](Linux/Linux.md)
+- **Raspberry Pi:** [Raspberry-Pi/Raspberry.md](Raspberry-Pi/Raspberry.md)
+- **ESP32:** [ESP32/ESP32.md](ESP32/ESP32.md)
 
 ---
 
@@ -557,11 +567,11 @@ sudo ufw enable
 |----------|-------------|-------|
 | [README.md](README.md) | This file - overview and quick start | 800+ |
 | [docs/FACE_RECOGNITION.md](docs/FACE_RECOGNITION.md) | Face recognition deep-dive, tuning, troubleshooting | 600+ |
-| [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md) | Linux server deployment, systemd, notifications | 200+ |
-| [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md) | Raspberry Pi client + standalone setup | 400+ |
-| [server/README.md](server/README.md) | Server API, configuration, extensions | 500+ |
-| [esp32/README.md](esp32/README.md) | ESP32 firmware, wiring, troubleshooting | 400+ |
-| [clients/raspi/README.md](clients/raspi/README.md) | Raspberry Pi client quick start | 100+ |
+| [Linux/Linux.md](Linux/Linux.md) | Linux server deployment, systemd, notifications | 200+ |
+| [Raspberry-Pi/Raspberry.md](Raspberry-Pi/Raspberry.md) | Raspberry Pi client + standalone setup | 400+ |
+| [Server/README.md](Server/README.md) | Server API, configuration, extensions | 500+ |
+| [ESP32/Client/README.md](ESP32/Client/README.md) | ESP32 firmware, wiring, troubleshooting | 400+ |
+| [Raspberry-Pi/Client/README.md](Raspberry-Pi/Client/README.md) | Raspberry Pi client quick start | 100+ |
 
 ### Quick Links
 
