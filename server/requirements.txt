@@ -8,9 +8,6 @@ Werkzeug==3.0.1
 # Configuration
 PyYAML==6.0.1
 
-# Windows Notifications
-winotify==1.1.0
-
 # Face Recognition (YuNet + SFace)
 opencv-contrib-python==4.8.1.78
 numpy==1.24.3
