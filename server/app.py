@@ -25,11 +25,11 @@ from io import BytesIO
 
 from flask import Flask, request, Response, jsonify, render_template, redirect, url_for
 import yaml
-from winotify import Notification, audio
 
 # Import our modules
 from database import Database
 from face_recognition_cv import FaceRecognitionCV
+from notifications import get_notification_backend
 
 # ============================================================================
 # CONFIGURATION
@@ -78,6 +78,13 @@ learning_cooldown = {}  # {person_id: last_learning_timestamp}
 app = Flask(__name__)
 db = Database(config['face_recognition']['db_path'])
 face_rec = FaceRecognitionCV(config)
+
+# Initialize notification backend
+notification_backend = None
+if config['notifications']['enabled']:
+    backend_type = config['notifications']['backend']
+    notification_backend = get_notification_backend(backend_type, config)
+    logger.info(f"Notification backend initialized: {backend_type}")
 
 # ============================================================================
 # WORKFLOW AUTOMATION (kept from original)
@@ -224,8 +231,11 @@ def auto_learn_face(person_id: int, face_result: dict, event_id: int):
 
     logger.info(f"✓ Auto-learned new sample for person {person_id} (quality={face_result['quality_score']:.2f})")
 
-def show_toast_notification(person_name: str, confidence: float, status: str, image_path: Path, is_new_person: bool = False):
-    """Show Windows Toast notification with person info"""
+def show_notification(person_name: str, confidence: float, status: str, image_path: Path, is_new_person: bool = False):
+    """Show notification with person info using configured backend"""
+    if not notification_backend:
+        return
+
     try:
         # Determine message based on status
         if is_new_person:
@@ -241,24 +251,13 @@ def show_toast_notification(person_name: str, confidence: float, status: str, im
             title = "❓ Unbekannte Person"
             msg = f"Keine Übereinstimmung gefunden"
 
-        # Create toast
-        toast = Notification(
-            app_id="ESP32 Motion Detector",
-            title=title,
-            msg=msg,
-            icon=str(image_path.absolute()) if image_path.exists() else None
-        )
-
-        if config['notifications']['sound']:
-            toast.set_audio(audio.Default, loop=False)
-
-        toast.add_actions(label="Details anzeigen", launch=f"http://localhost:{config['server']['port']}/latest")
-
-        toast.show()
-        logger.info(f"Toast notification shown: {person_name} ({status})")
+        # Show notification via backend
+        url = f"http://localhost:{config['server']['port']}/latest"
+        notification_backend.show_notification(title, msg, image_path, url)
+        logger.info(f"Notification shown: {person_name} ({status})")
 
     except Exception as e:
-        logger.error(f"Failed to show toast notification: {e}")
+        logger.error(f"Failed to show notification: {e}")
 
 # ============================================================================
 # FLASK ROUTES - API
@@ -390,9 +389,9 @@ def upload():
                     filepath
                 )
 
-                # Windows notification (only for first face)
+                # Notification (only for first face)
                 if config['notifications']['enabled'] and len(faces_detected) == 1:
-                    show_toast_notification(
+                    show_notification(
                         person_name,
                         match['confidence'],
                         match['status'],
