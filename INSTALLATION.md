@@ -6,7 +6,7 @@
 
 ```bash
 git clone <repository-url>
-cd ESP32-Motion-Detector-Windows-Server/server
+cd ESP32-Motion-Detector-Windows-Server/Server
 setup.bat
 ```
 
@@ -21,7 +21,7 @@ setup.bat
 
 ```bash
 git clone <repository-url>
-cd ESP32-Motion-Detector-Windows-Server/server
+cd ESP32-Motion-Detector-Windows-Server/Server
 chmod +x setup.sh
 ./setup.sh
 ```
@@ -30,7 +30,16 @@ chmod +x setup.sh
 
 ```bash
 git clone <repository-url>
-cd ESP32-Motion-Detector-Windows-Server/clients/raspi
+cd ESP32-Motion-Detector-Windows-Server/Raspberry-Pi/Client
+chmod +x setup.sh
+./setup.sh
+```
+
+### Raspberry Pi Standalone
+
+```bash
+git clone <repository-url>
+cd ESP32-Motion-Detector-Windows-Server/Raspberry-Pi/Standalone
 chmod +x setup.sh
 ./setup.sh
 ```
@@ -196,7 +205,7 @@ pip install --upgrade certifi
 
 **Option 2: Manual Download**
 ```bash
-cd server/models
+cd Server/models
 
 # Download YuNet
 curl -L -o face_detection_yunet_2023mar.onnx \
@@ -209,7 +218,7 @@ curl -L -o face_recognition_sface_2021dec.onnx \
 
 **Option 3: Download from Browser**
 1. Open URLs in browser (see above)
-2. Save files to `server/models/` directory
+2. Save files to `Server/models/` directory
 3. Verify filenames match exactly
 
 ---
@@ -327,7 +336,7 @@ camera_auto_detect=1
 ```
 
 5. **Use USB Webcam Instead:**
-   - Edit `clients/raspi/config.yaml`:
+   - Edit `Raspberry-Pi/Client/config.yaml`:
    - Set `camera.device_index: 0`
    - Install opencv: `pip install opencv-python`
 
@@ -385,7 +394,7 @@ taskkill /PID <PID> /F
 ```
 
 2. **Change Port:**
-   - Edit `server/config.yaml`:
+   - Edit `Server/config.yaml`:
    - `server.port: 5001` (or any free port)
    - Update client configuration accordingly
 
@@ -477,7 +486,7 @@ deactivate  # Works on all platforms
 ### Test Server Installation
 
 ```bash
-cd server
+cd Server
 
 # Check Python version
 python --version  # or python3 --version
@@ -502,7 +511,7 @@ python app.py
 ### Test Client Installation (Raspberry Pi)
 
 ```bash
-cd clients/raspi
+cd Raspberry-Pi/Client
 
 # Check camera
 libcamera-hello --list-cameras
@@ -523,11 +532,19 @@ curl http://$SERVER_IP:5000/health
 
 ## 📚 Additional Resources
 
-- **Main README:** [README.md](README.md)
-- **Face Recognition Guide:** [docs/FACE_RECOGNITION.md](docs/FACE_RECOGNITION.md)
-- **Linux Setup:** [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md)
-- **Raspberry Pi Guide:** [docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md)
-- **ESP32 Firmware:** [esp32/README.md](esp32/README.md)
+### Platform-Specific Guides
+
+- **Windows:** [Windows/Windows.md](Windows/Windows.md) - Complete Windows installation guide
+- **Linux:** [Linux/Linux.md](Linux/Linux.md) - Complete Linux installation guide
+- **Raspberry Pi:** [Raspberry-Pi/Raspberry.md](Raspberry-Pi/Raspberry.md) - All Pi modes (Client/Server/Standalone)
+- **ESP32:** [ESP32/ESP32.md](ESP32/ESP32.md) - ESP32-CAM firmware guide
+
+### Technical Documentation
+
+- **Main README:** [README.md](README.md) - Project overview and quick start
+- **Face Recognition:** [docs/FACE_RECOGNITION.md](docs/FACE_RECOGNITION.md) - Deep-dive into FR system
+- **Server API:** [Server/README.md](Server/README.md) - Server configuration and API
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md) - Version history and migration guides
 
 ---
 
@@ -549,9 +566,13 @@ curl http://$SERVER_IP:5000/health
 1. **Check logs:**
    ```bash
    # Server
-   cat server/server.log
+   cat Server/server.log
 
    # Raspberry Pi Client (systemd)
+   sudo journalctl -u motion-detector-client -n 50
+
+   # Raspberry Pi Standalone (both services)
+   sudo journalctl -u motion-detector-server -n 50
    sudo journalctl -u motion-detector-client -n 50
    ```
 
@@ -569,4 +590,4 @@ curl http://$SERVER_IP:5000/health
 
 ---
 
-**Last Updated:** 2024-12-22
+**Last Updated:** 2025-12-22
