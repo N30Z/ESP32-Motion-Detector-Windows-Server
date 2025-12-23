@@ -1,0 +1,22 @@
+# ESP32 Motion Detector Server - Python Dependencies
+# ====================================================
+# RECOMMENDED UPDATES - See DEPENDENCY_AUDIT.md for details
+
+# Web Framework
+Flask==3.1.2  # Updated from 3.0.0
+Werkzeug==3.1.4  # SECURITY UPDATE from 3.0.1 - Fixes 4 CVEs
+
+# Configuration
+PyYAML==6.0.1
+
+# Face Recognition (YuNet + SFace)
+opencv-contrib-python==4.12.0.88  # Updated from 4.8.1.78 - Performance improvements
+numpy==1.26.4  # Conservative update from 1.24.3 (staying on 1.x for stability)
+# Alternative: numpy==2.4.0  # Latest, but requires extensive testing
+Pillow==12.0.0  # SECURITY UPDATE from 10.1.0 - Fixes 2 CVEs
+
+# Optional: Advanced integrations (uncomment as needed)
+# requests==2.32.5  # For webhooks - SECURITY UPDATE
+# python-telegram-bot==20.7  # For Telegram
+# paho-mqtt==1.6.1  # For MQTT
+# pushbullet.py==0.12.0  # For Pushbullet
