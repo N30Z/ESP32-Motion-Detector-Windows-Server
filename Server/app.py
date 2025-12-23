@@ -274,6 +274,45 @@ def health():
         'database_stats': stats
     })
 
+@app.route('/api/client/config', methods=['GET'])
+def get_client_config():
+    """
+    API endpoint for clients to fetch their configuration
+    Returns the client configuration template with auth token from server config
+    """
+    if not check_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    # Load client config template
+    client_config_file = Path(__file__).parent / 'client_config_template.yaml'
+    if client_config_file.exists():
+        with open(client_config_file, 'r') as f:
+            client_config = yaml.safe_load(f)
+    else:
+        # Return default client config if template doesn't exist
+        client_config = {
+            'server': {
+                'url': f"http://{config['server']['host']}:{config['server']['port']}",
+                'auth_token': config['security']['auth_token'],
+                'device_id': 'Client-{hostname}'
+            },
+            'pir': {'gpio_pin': 17},
+            'motion': {'cooldown_seconds': 5},
+            'camera': {
+                'resolution': [1280, 720],
+                'jpeg_quality': 85,
+                'device_index': 0
+            },
+            'streaming': {'enabled': False, 'fps': 5},
+            'logging': {'level': 'INFO', 'file': './logs/client.log'}
+        }
+
+    # Always sync auth token with server
+    client_config['server']['auth_token'] = config['security']['auth_token']
+
+    logger.info("Client configuration requested")
+    return jsonify(client_config)
+
 @app.route('/upload', methods=['POST'])
 def upload():
     """Handle motion-triggered photo upload with face recognition"""
@@ -594,30 +633,110 @@ def index():
 @app.route('/config', methods=['GET', 'POST'])
 def config_page():
     """Configuration page"""
+    # Load or create client config template
+    client_config_file = Path(__file__).parent / 'client_config_template.yaml'
+    if client_config_file.exists():
+        with open(client_config_file, 'r') as f:
+            client_config = yaml.safe_load(f)
+    else:
+        # Default client config template
+        client_config = {
+            'server': {
+                'url': 'http://localhost:5000',
+                'device_id': 'Client-{hostname}'
+            },
+            'pir': {'gpio_pin': 17},
+            'motion': {'cooldown_seconds': 5},
+            'camera': {
+                'resolution': [1280, 720],
+                'jpeg_quality': 85,
+                'device_index': 0
+            },
+            'streaming': {'enabled': False, 'fps': 5},
+            'logging': {'level': 'INFO', 'file': './logs/client.log'}
+        }
+
     if request.method == 'POST':
         # Save config
         try:
-            # Update config dict
+            # Server settings
+            config['server']['host'] = request.form.get('server_host', '0.0.0.0')
+            config['server']['port'] = int(request.form.get('server_port', 5000))
+            config['server']['debug'] = request.form.get('server_debug') == 'on'
+            config['server']['log_level'] = request.form.get('server_log_level', 'INFO')
+            config['server']['log_file'] = request.form.get('server_log_file', 'server.log')
+
+            # Security settings
+            config['security']['auth_token'] = request.form.get('auth_token', 'YOUR_SECRET_TOKEN_CHANGE_ME_12345')
+            config['security']['require_auth_for_stream'] = request.form.get('require_auth_for_stream') == 'on'
+
+            # Storage settings
+            config['storage']['image_dir'] = request.form.get('storage_image_dir', './captured_images')
+            config['storage']['max_images'] = int(request.form.get('storage_max_images', 1000))
+            config['storage']['max_age_days'] = int(request.form.get('storage_max_age_days', 30))
+
+            # Notification settings
+            config['notifications']['enabled'] = request.form.get('notifications_enabled') == 'on'
+            config['notifications']['backend'] = request.form.get('notifications_backend', 'windows_toast')
+            config['notifications']['sound'] = request.form.get('notifications_sound') == 'on'
+
+            # Face recognition settings
+            config['face_recognition']['enabled'] = request.form.get('face_recognition_enabled') == 'on'
+            config['face_recognition']['db_path'] = request.form.get('face_db_path', './faces.db')
+            config['face_recognition']['faces_dir'] = request.form.get('faces_dir', './faces_db')
             config['face_recognition']['threshold_strict'] = float(request.form.get('threshold_strict', 0.35))
             config['face_recognition']['threshold_loose'] = float(request.form.get('threshold_loose', 0.50))
             config['face_recognition']['margin_strict'] = float(request.form.get('margin_strict', 0.15))
             config['face_recognition']['margin_loose'] = float(request.form.get('margin_loose', 0.08))
+            config['face_recognition']['min_face_size'] = int(request.form.get('min_face_size', 10000))
+            config['face_recognition']['min_quality_score'] = float(request.form.get('min_quality_score', 0.6))
             config['face_recognition']['auto_learning']['enabled'] = request.form.get('auto_learning_enabled') == 'on'
             config['face_recognition']['auto_learning']['max_samples_per_person'] = int(request.form.get('max_samples', 15))
+            config['face_recognition']['auto_learning']['cooldown_seconds'] = int(request.form.get('cooldown_seconds', 60))
+            config['face_recognition']['auto_learning']['only_green_matches'] = request.form.get('only_green_matches') == 'on'
+            config['face_recognition']['auto_learning']['replace_strategy'] = request.form.get('replace_strategy', 'oldest')
             config['face_recognition']['auto_create_person'] = request.form.get('auto_create_person') == 'on'
+            config['face_recognition']['new_person_name_template'] = request.form.get('new_person_name_template', 'Unbekannt #{count}')
 
-            # Save to file
+            # Stream settings
+            config['stream']['target_fps'] = int(request.form.get('stream_target_fps', 10))
+            config['stream']['jpeg_quality'] = int(request.form.get('stream_jpeg_quality', 80))
+
+            # Client config template
+            client_config['server']['url'] = request.form.get('client_server_url', 'http://localhost:5000')
+            client_config['server']['auth_token'] = config['security']['auth_token']  # Always sync with server auth token
+            client_config['server']['device_id'] = request.form.get('client_device_id', 'Client-{hostname}')
+            client_config['pir']['gpio_pin'] = int(request.form.get('client_pir_gpio_pin', 17))
+            client_config['motion']['cooldown_seconds'] = int(request.form.get('client_motion_cooldown', 5))
+            client_config['camera']['resolution'] = [
+                int(request.form.get('client_camera_width', 1280)),
+                int(request.form.get('client_camera_height', 720))
+            ]
+            client_config['camera']['jpeg_quality'] = int(request.form.get('client_camera_jpeg_quality', 85))
+            client_config['camera']['device_index'] = int(request.form.get('client_camera_device_index', 0))
+            client_config['streaming']['enabled'] = request.form.get('client_streaming_enabled') == 'on'
+            client_config['streaming']['fps'] = int(request.form.get('client_streaming_fps', 5))
+            client_config['logging']['level'] = request.form.get('client_logging_level', 'INFO')
+            client_config['logging']['file'] = request.form.get('client_logging_file', './logs/client.log')
+
+            # Save server config to file
             with open(CONFIG_FILE, 'w') as f:
                 yaml.dump(config, f, default_flow_style=False)
 
-            logger.info("Configuration saved")
-            return redirect(url_for('config_page'))
+            # Save client config template to file
+            with open(client_config_file, 'w') as f:
+                yaml.dump(client_config, f, default_flow_style=False)
+
+            logger.info("Configuration saved successfully")
+            return render_template('config.html', config=config, client_config=client_config,
+                                 message="Konfiguration erfolgreich gespeichert!", message_type="success")
 
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
-            return f"Error: {e}", 500
+            return render_template('config.html', config=config, client_config=client_config,
+                                 message=f"Fehler beim Speichern: {e}", message_type="error")
 
-    return render_template('config.html', config=config)
+    return render_template('config.html', config=config, client_config=client_config)
 
 @app.route('/persons', methods=['GET'])
 def persons_list():
