@@ -197,9 +197,18 @@ echo ""
 log_info "=== INSTALLING CLIENT ==="
 cd "$CLIENT_DIR"
 
+# Create venv for client (with system packages for picamera2)
+if [ ! -d "venv" ]; then
+    log_info "Creating virtual environment for client..."
+    python3 -m venv venv --system-site-packages
+fi
+
 # Install client dependencies
 log_info "Installing client dependencies..."
-pip3 install -r requirements.txt
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+deactivate
 
 # Create client config
 if [ ! -f "config.yaml" ]; then
@@ -285,7 +294,7 @@ User=$USER
 Group=$USER
 WorkingDirectory=$CLIENT_DIR
 Environment="PYTHONUNBUFFERED=1"
-ExecStart=/usr/bin/python3 pir_cam_client.py
+ExecStart=$CLIENT_DIR/venv/bin/python pir_cam_client.py
 
 Restart=on-failure
 RestartSec=10s
