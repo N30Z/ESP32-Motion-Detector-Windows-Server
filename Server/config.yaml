@@ -39,7 +39,7 @@ notifications:
 
 face_recognition:
   # Enable face recognition pipeline
-  enabled: false  # Set to true after downloading models
+  enabled: true  # Face recognition enabled
 
   # Database
   db_path: './faces.db'
