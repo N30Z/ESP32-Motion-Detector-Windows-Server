@@ -1,0 +1,3 @@
+# ONNX Model Files (too large for Git)
+# Download these models using download_models.py or manually
+*.onnx
