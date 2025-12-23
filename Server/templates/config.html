@@ -5,8 +5,157 @@
 {% block content %}
 <h1>⚙️ Konfiguration</h1>
 
+{% if message %}
+<div class="alert alert-{{ message_type }}">{{ message }}</div>
+{% endif %}
+
 <form method="POST" class="config-form">
-    <h2>Face Recognition Thresholds</h2>
+
+    <!-- Server Settings -->
+    <h2>🖥️ Server Einstellungen</h2>
+
+    <div class="form-group">
+        <label for="server_host">Host</label>
+        <input type="text" id="server_host" name="server_host"
+               value="{{ config.server.host }}">
+        <small>Server-Adresse (0.0.0.0 = alle Interfaces)</small>
+    </div>
+
+    <div class="form-group">
+        <label for="server_port">Port</label>
+        <input type="number" id="server_port" name="server_port"
+               value="{{ config.server.port }}" min="1" max="65535">
+        <small>Server-Port (Standard: 5000)</small>
+    </div>
+
+    <div class="form-group">
+        <label>
+            <input type="checkbox" name="server_debug"
+                   {% if config.server.debug %}checked{% endif %}>
+            Debug-Modus
+        </label>
+        <small>Nur für Entwicklung aktivieren!</small>
+    </div>
+
+    <div class="form-group">
+        <label for="server_log_level">Log Level</label>
+        <select id="server_log_level" name="server_log_level">
+            <option value="DEBUG" {% if config.server.log_level == 'DEBUG' %}selected{% endif %}>DEBUG</option>
+            <option value="INFO" {% if config.server.log_level == 'INFO' %}selected{% endif %}>INFO</option>
+            <option value="WARNING" {% if config.server.log_level == 'WARNING' %}selected{% endif %}>WARNING</option>
+            <option value="ERROR" {% if config.server.log_level == 'ERROR' %}selected{% endif %}>ERROR</option>
+        </select>
+        <small>Logging-Level für Server</small>
+    </div>
+
+    <div class="form-group">
+        <label for="server_log_file">Log-Datei</label>
+        <input type="text" id="server_log_file" name="server_log_file"
+               value="{{ config.server.log_file }}">
+        <small>Pfad zur Log-Datei</small>
+    </div>
+
+    <!-- Security Settings -->
+    <h2>🔒 Sicherheit</h2>
+
+    <div class="form-group">
+        <label for="auth_token">Auth Token</label>
+        <input type="text" id="auth_token" name="auth_token"
+               value="{{ config.security.auth_token }}">
+        <small>⚠️ Muss mit Client-Token übereinstimmen!</small>
+    </div>
+
+    <div class="form-group">
+        <label>
+            <input type="checkbox" name="require_auth_for_stream"
+                   {% if config.security.require_auth_for_stream %}checked{% endif %}>
+            Authentifizierung für Stream erforderlich
+        </label>
+        <small>Stream nur mit gültigem Token zugänglich</small>
+    </div>
+
+    <!-- Storage Settings -->
+    <h2>💾 Speicher</h2>
+
+    <div class="form-group">
+        <label for="storage_image_dir">Bild-Verzeichnis</label>
+        <input type="text" id="storage_image_dir" name="storage_image_dir"
+               value="{{ config.storage.image_dir }}">
+        <small>Pfad für gespeicherte Bilder</small>
+    </div>
+
+    <div class="form-group">
+        <label for="storage_max_images">Max. Anzahl Bilder</label>
+        <input type="number" id="storage_max_images" name="storage_max_images"
+               value="{{ config.storage.max_images }}" min="1">
+        <small>Maximale Anzahl gespeicherter Bilder</small>
+    </div>
+
+    <div class="form-group">
+        <label for="storage_max_age_days">Max. Alter (Tage)</label>
+        <input type="number" id="storage_max_age_days" name="storage_max_age_days"
+               value="{{ config.storage.max_age_days }}" min="1">
+        <small>Automatische Löschung nach X Tagen</small>
+    </div>
+
+    <!-- Notification Settings -->
+    <h2>🔔 Benachrichtigungen</h2>
+
+    <div class="form-group">
+        <label>
+            <input type="checkbox" name="notifications_enabled"
+                   {% if config.notifications.enabled %}checked{% endif %}>
+            Benachrichtigungen aktivieren
+        </label>
+        <small>System-Benachrichtigungen aktivieren</small>
+    </div>
+
+    <div class="form-group">
+        <label for="notifications_backend">Benachrichtigungs-Backend</label>
+        <select id="notifications_backend" name="notifications_backend">
+            <option value="windows_toast" {% if config.notifications.backend == 'windows_toast' %}selected{% endif %}>Windows Toast</option>
+            <option value="linux_notify" {% if config.notifications.backend == 'linux_notify' %}selected{% endif %}>Linux Notify</option>
+            <option value="disabled" {% if config.notifications.backend == 'disabled' %}selected{% endif %}>Deaktiviert</option>
+        </select>
+        <small>Benachrichtigungs-System für das Betriebssystem</small>
+    </div>
+
+    <div class="form-group">
+        <label>
+            <input type="checkbox" name="notifications_sound"
+                   {% if config.notifications.sound %}checked{% endif %}>
+            Ton abspielen
+        </label>
+        <small>Sound bei Benachrichtigungen</small>
+    </div>
+
+    <!-- Face Recognition Settings -->
+    <h2>👤 Gesichtserkennung</h2>
+
+    <div class="form-group">
+        <label>
+            <input type="checkbox" name="face_recognition_enabled"
+                   {% if config.face_recognition.enabled %}checked{% endif %}>
+            Gesichtserkennung aktivieren
+        </label>
+        <small>⚠️ Erfordert heruntergeladene ML-Modelle!</small>
+    </div>
+
+    <div class="form-group">
+        <label for="face_db_path">Datenbank-Pfad</label>
+        <input type="text" id="face_db_path" name="face_db_path"
+               value="{{ config.face_recognition.db_path }}">
+        <small>Pfad zur SQLite-Datenbank</small>
+    </div>
+
+    <div class="form-group">
+        <label for="faces_dir">Gesichter-Verzeichnis</label>
+        <input type="text" id="faces_dir" name="faces_dir"
+               value="{{ config.face_recognition.faces_dir }}">
+        <small>Verzeichnis für Gesichts-Crops</small>
+    </div>
+
+    <h3>Recognition Thresholds</h3>
 
     <div class="form-group">
         <label for="threshold_strict">Threshold Strict (GREEN)</label>
@@ -36,7 +185,23 @@
         <small>Mindest-Margin für unsichere Erkennung</small>
     </div>
 
-    <h2>Auto-Learning</h2>
+    <h3>Qualitäts-Einstellungen</h3>
+
+    <div class="form-group">
+        <label for="min_face_size">Minimale Gesichtsgröße (Pixel)</label>
+        <input type="number" id="min_face_size" name="min_face_size"
+               value="{{ config.face_recognition.min_face_size }}" min="100">
+        <small>Minimale Fläche für Auto-Learning (z.B. 10000 = 100x100px)</small>
+    </div>
+
+    <div class="form-group">
+        <label for="min_quality_score">Minimale Qualität</label>
+        <input type="number" step="0.1" id="min_quality_score" name="min_quality_score"
+               value="{{ config.face_recognition.min_quality_score }}" min="0" max="1">
+        <small>Minimaler Qualitäts-Score für Auto-Learning (0-1)</small>
+    </div>
+
+    <h3>Auto-Learning</h3>
 
     <div class="form-group">
         <label>
@@ -54,7 +219,32 @@
         <small>Maximale Anzahl gespeicherter Samples pro Person</small>
     </div>
 
-    <h2>Person Management</h2>
+    <div class="form-group">
+        <label for="cooldown_seconds">Cooldown (Sekunden)</label>
+        <input type="number" id="cooldown_seconds" name="cooldown_seconds"
+               value="{{ config.face_recognition.auto_learning.cooldown_seconds }}" min="0">
+        <small>Wartezeit zwischen Auto-Learning-Events</small>
+    </div>
+
+    <div class="form-group">
+        <label>
+            <input type="checkbox" name="only_green_matches"
+                   {% if config.face_recognition.auto_learning.only_green_matches %}checked{% endif %}>
+            Nur GREEN Matches lernen
+        </label>
+        <small>Nur von sicheren Erkennungen lernen</small>
+    </div>
+
+    <div class="form-group">
+        <label for="replace_strategy">Ersetzungs-Strategie</label>
+        <select id="replace_strategy" name="replace_strategy">
+            <option value="oldest" {% if config.face_recognition.auto_learning.replace_strategy == 'oldest' %}selected{% endif %}>Älteste</option>
+            <option value="lowest_quality" {% if config.face_recognition.auto_learning.replace_strategy == 'lowest_quality' %}selected{% endif %}>Niedrigste Qualität</option>
+        </select>
+        <small>Welche Samples bei Überschreitung ersetzen</small>
+    </div>
+
+    <h3>Person Management</h3>
 
     <div class="form-group">
         <label>
@@ -63,6 +253,136 @@
             Automatisch neue Personen erstellen
         </label>
         <small>Bei UNKNOWN automatisch neue Person anlegen</small>
+    </div>
+
+    <div class="form-group">
+        <label for="new_person_name_template">Neuer Personen-Name Template</label>
+        <input type="text" id="new_person_name_template" name="new_person_name_template"
+               value="{{ config.face_recognition.new_person_name_template }}">
+        <small>Template für neue Personen (z.B. "Unbekannt #{count}")</small>
+    </div>
+
+    <!-- Stream Settings -->
+    <h2>📹 Stream</h2>
+
+    <div class="form-group">
+        <label for="stream_target_fps">Ziel-FPS</label>
+        <input type="number" id="stream_target_fps" name="stream_target_fps"
+               value="{{ config.stream.target_fps }}" min="1" max="30">
+        <small>Ziel-Framerate für Live-Stream</small>
+    </div>
+
+    <div class="form-group">
+        <label for="stream_jpeg_quality">JPEG-Qualität</label>
+        <input type="number" id="stream_jpeg_quality" name="stream_jpeg_quality"
+               value="{{ config.stream.jpeg_quality }}" min="1" max="100">
+        <small>JPEG-Komprimierung (1-100, höher = besser)</small>
+    </div>
+
+    <!-- Client Configuration Template -->
+    <h2>📱 Client-Konfiguration (Template)</h2>
+    <p><small>Diese Einstellungen dienen als Vorlage für neue Clients. Clients können diese Konfiguration per API abrufen.</small></p>
+
+    <h3>Server-Verbindung</h3>
+
+    <div class="form-group">
+        <label for="client_server_url">Server URL</label>
+        <input type="text" id="client_server_url" name="client_server_url"
+               value="{{ client_config.server.url if client_config and client_config.server else 'http://localhost:5000' }}">
+        <small>URL des Servers (wird von Client verwendet)</small>
+    </div>
+
+    <div class="form-group">
+        <label for="client_device_id">Device ID Template</label>
+        <input type="text" id="client_device_id" name="client_device_id"
+               value="{{ client_config.server.device_id if client_config and client_config.server else 'Client-{hostname}' }}">
+        <small>Template für Client Device ID (z.B. Client-{hostname})</small>
+    </div>
+
+    <h3>PIR Sensor</h3>
+
+    <div class="form-group">
+        <label for="client_pir_gpio_pin">GPIO Pin</label>
+        <input type="number" id="client_pir_gpio_pin" name="client_pir_gpio_pin"
+               value="{{ client_config.pir.gpio_pin if client_config and client_config.pir else 17 }}" min="1" max="40">
+        <small>GPIO-Pin für PIR-Sensor (BCM-Nummerierung)</small>
+    </div>
+
+    <h3>Motion Detection</h3>
+
+    <div class="form-group">
+        <label for="client_motion_cooldown">Cooldown (Sekunden)</label>
+        <input type="number" id="client_motion_cooldown" name="client_motion_cooldown"
+               value="{{ client_config.motion.cooldown_seconds if client_config and client_config.motion else 5 }}" min="0">
+        <small>Wartezeit zwischen Motion-Events</small>
+    </div>
+
+    <h3>Kamera</h3>
+
+    <div class="form-group">
+        <label for="client_camera_width">Auflösung Breite</label>
+        <input type="number" id="client_camera_width" name="client_camera_width"
+               value="{{ client_config.camera.resolution[0] if client_config and client_config.camera else 1280 }}" min="320">
+        <small>Kamera-Breite in Pixel</small>
+    </div>
+
+    <div class="form-group">
+        <label for="client_camera_height">Auflösung Höhe</label>
+        <input type="number" id="client_camera_height" name="client_camera_height"
+               value="{{ client_config.camera.resolution[1] if client_config and client_config.camera else 720 }}" min="240">
+        <small>Kamera-Höhe in Pixel</small>
+    </div>
+
+    <div class="form-group">
+        <label for="client_camera_jpeg_quality">JPEG-Qualität</label>
+        <input type="number" id="client_camera_jpeg_quality" name="client_camera_jpeg_quality"
+               value="{{ client_config.camera.jpeg_quality if client_config and client_config.camera else 85 }}" min="1" max="100">
+        <small>JPEG-Komprimierung (1-100, höher = besser)</small>
+    </div>
+
+    <div class="form-group">
+        <label for="client_camera_device_index">USB Device Index</label>
+        <input type="number" id="client_camera_device_index" name="client_camera_device_index"
+               value="{{ client_config.camera.device_index if client_config and client_config.camera else 0 }}" min="0">
+        <small>USB-Kamera Index (nur für OpenCV)</small>
+    </div>
+
+    <h3>Streaming</h3>
+
+    <div class="form-group">
+        <label>
+            <input type="checkbox" name="client_streaming_enabled"
+                   {% if client_config and client_config.streaming and client_config.streaming.enabled %}checked{% endif %}>
+            Streaming aktivieren
+        </label>
+        <small>Kontinuierliches Frame-Streaming für Live-View</small>
+    </div>
+
+    <div class="form-group">
+        <label for="client_streaming_fps">Streaming FPS</label>
+        <input type="number" id="client_streaming_fps" name="client_streaming_fps"
+               value="{{ client_config.streaming.fps if client_config and client_config.streaming else 5 }}" min="1" max="30">
+        <small>Ziel-FPS für Streaming</small>
+    </div>
+
+    <h3>Logging</h3>
+
+    <div class="form-group">
+        <label for="client_logging_level">Log Level</label>
+        <select id="client_logging_level" name="client_logging_level">
+            <option value="DEBUG" {% if client_config and client_config.logging and client_config.logging.level == 'DEBUG' %}selected{% endif %}>DEBUG</option>
+            <option value="INFO" {% if client_config and client_config.logging and client_config.logging.level == 'INFO' %}selected{% elif not client_config or not client_config.logging %}selected{% endif %}>INFO</option>
+            <option value="WARNING" {% if client_config and client_config.logging and client_config.logging.level == 'WARNING' %}selected{% endif %}>WARNING</option>
+            <option value="ERROR" {% if client_config and client_config.logging and client_config.logging.level == 'ERROR' %}selected{% endif %}>ERROR</option>
+        </select>
+        <small>Logging-Level für Client</small>
+    </div>
+
+    <div class="form-group">
+        <label for="client_logging_file">Log-Datei</label>
+        <input type="text" id="client_logging_file" name="client_logging_file"
+               value="{{ client_config.logging.file if client_config and client_config.logging else './logs/client.log' }}">
+        <small>Pfad zur Client Log-Datei</small>
     </div>
 
     <button type="submit" class="button button-primary">💾 Speichern</button>
