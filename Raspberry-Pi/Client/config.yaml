@@ -1,0 +1,50 @@
+# Raspberry Pi Motion Detector Client - Configuration
+# =====================================================
+
+server:
+  # Server URL (Windows or Linux server)
+  url: 'http://localhost:5000'
+
+  # Authentication token (must match server config.yaml)
+  auth_token: 'YOUR_SECRET_TOKEN_CHANGE_ME_12345'
+
+  # Device identifier
+  device_id: 'RaspberryPi-Standalone'
+
+pir:
+  # GPIO pin for PIR sensor (BCM numbering)
+  # Common pins: 17, 18, 27, 22, 23, 24
+  gpio_pin: 17
+
+motion:
+  # Cooldown between motion events (seconds)
+  # Prevents spam - recommended: 5-10s
+  cooldown_seconds: 5
+
+camera:
+  # Camera resolution [width, height]
+  # CSI Camera: [1920, 1080], [1280, 720], [640, 480]
+  # USB Camera: depends on device capabilities
+  resolution: [1280, 720]
+
+  # JPEG quality (1-100, higher = better quality, larger file)
+  jpeg_quality: 85
+
+  # USB camera device index (only for opencv, ignored for picamera2)
+  device_index: 0
+
+streaming:
+  # Enable continuous frame streaming (for live view)
+  enabled: true
+
+  # Target FPS for streaming
+  # Note: Raspberry Pi 3 may struggle with >5 fps
+  #       Raspberry Pi 4/5 can handle 10 fps
+  fps: 5
+
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR
+  level: 'INFO'
+
+  # Log file path (use /var/log/ only for systemd service)
+  file: './logs/client.log'
