@@ -70,7 +70,7 @@ class FaceRecognitionCV:
                 model=str(self.yunet_model),
                 config="",
                 input_size=(320, 320),
-                score_threshold=0.6,
+                score_threshold=0.3,  # Lowered from 0.6 for better detection (0.0-1.0)
                 nms_threshold=0.3,
                 top_k=5000
             )
@@ -109,12 +109,14 @@ class FaceRecognitionCV:
 
             # Set input size for detector
             h, w = img.shape[:2]
+            logger.debug(f"Image size: {w}x{h}")
             self.detector.setInputSize((w, h))
 
             # Detect faces
             _, faces = self.detector.detect(img)
 
             if faces is None:
+                logger.debug("YuNet returned None (no faces detected)")
                 return []
 
             # Parse detections
@@ -138,7 +140,9 @@ class FaceRecognitionCV:
                     'quality_score': quality_score
                 })
 
-            logger.debug(f"Detected {len(face_list)} faces")
+                logger.debug(f"Face {len(face_list)}: bbox={bbox}, score={score:.3f}, quality={quality_score:.3f}, size={bbox[2]}x{bbox[3]}px")
+
+            logger.debug(f"Detected {len(face_list)} faces total")
             return face_list
 
         except Exception as e:

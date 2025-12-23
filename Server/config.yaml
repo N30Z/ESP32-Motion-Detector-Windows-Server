@@ -5,7 +5,7 @@ server:
   host: '0.0.0.0'  # Listen on all interfaces
   port: 5000
   debug: false  # Set to true for development only
-  log_level: 'INFO'  # DEBUG, INFO, WARNING, ERROR
+  log_level: 'DEBUG'  # DEBUG, INFO, WARNING, ERROR - Set to DEBUG for troubleshooting
   log_file: 'server.log'
 
 security:
